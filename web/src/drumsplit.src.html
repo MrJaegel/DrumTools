@@ -1,0 +1,751 @@
+<title>DrumSplit</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: one column like a DAW arrange window — load bar, readout, arranger lane, groove patterns, section list */
+:root {
+  --bg: #eef0f3;
+  --panel: #fbfbfc;
+  --ink: #15181d;
+  --muted: #5d6573;
+  --line: #d5d9e0;
+  --cell: #e3e6eb;
+  --warn-bg: #fff4d6;
+  --warn-ink: #6b4a00;
+  --err-bg: #fde4e1;
+  --err-ink: #8a1f14;
+  --g-a: #2f68c9; --g-b: #d07a1f; --g-c: #23895c; --g-d: #b23f8f;
+  --g-e: #6c55c9; --g-f: #b8402f; --g-g: #1d8ea3; --g-h: #7f7424;
+  /* only the computer's own fonts: nothing is loaded from other servers */
+  --font-display: "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "Cascadia Mono", Consolas, ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111317; --panel: #1a1d23; --ink: #e8eaee; --muted: #9aa2b0; --line: #2d323b; --cell: #262a32;
+    --warn-bg: #3a2f12; --warn-ink: #f3d68a; --err-bg: #3d1a17; --err-ink: #f6b4aa;
+    --g-a: #6f9cf0; --g-b: #f0a050; --g-c: #4fc08b; --g-d: #e277c0;
+    --g-e: #a08cf2; --g-f: #ef7a66; --g-g: #4cc3d6; --g-h: #c9b95a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111317; --panel: #1a1d23; --ink: #e8eaee; --muted: #9aa2b0; --line: #2d323b; --cell: #262a32;
+  --warn-bg: #3a2f12; --warn-ink: #f3d68a; --err-bg: #3d1a17; --err-ink: #f6b4aa;
+  --g-a: #6f9cf0; --g-b: #f0a050; --g-c: #4fc08b; --g-d: #e277c0;
+  --g-e: #a08cf2; --g-f: #ef7a66; --g-g: #4cc3d6; --g-h: #c9b95a;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font: 15px/1.5 var(--font-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 56px;
+}
+main { max-width: 1040px; margin: 0 auto; display: grid; gap: 22px; }
+h1 { font: 700 clamp(30px, 5vw, 42px)/1.05 var(--font-display); letter-spacing: -0.02em; margin: 0; text-wrap: balance; }
+h2 { font: 600 13px/1.2 var(--font-body); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 12px; }
+.lead { margin: 8px 0 0; max-width: 62ch; color: var(--muted); }
+.mono, .num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; min-width: 0; }
+
+/* Load bar */
+.drop { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; border: 1.5px dashed var(--line); border-radius: 10px; padding: 16px 18px; background: var(--panel); transition: border-color .15s, background .15s; }
+.drop.over { border-color: var(--ink); background: var(--cell); }
+.drop .file { flex: 1 1 260px; min-width: 0; }
+.drop .file strong { display: block; font-weight: 600; overflow-wrap: anywhere; }
+.drop .file span { color: var(--muted); font-size: 13.5px; }
+.badge { display: inline-block; font: 500 11.5px/1 var(--font-body); text-transform: uppercase; letter-spacing: .07em; padding: 4px 7px; border-radius: 4px; background: var(--warn-bg); color: var(--warn-ink); vertical-align: 2px; margin-left: 6px; }
+button, .btn { font: 600 14.5px/1 var(--font-body); border-radius: 7px; padding: 11px 16px; cursor: pointer; border: 1px solid var(--line); background: var(--panel); color: var(--ink); }
+button:hover { border-color: var(--muted); }
+button.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+button.primary:hover { opacity: .88; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--g-a); outline-offset: 2px; }
+button:disabled { opacity: .45; cursor: default; }
+
+.notice { border-radius: 8px; padding: 10px 14px; font-size: 14px; background: var(--warn-bg); color: var(--warn-ink); }
+.notice.error { background: var(--err-bg); color: var(--err-ink); }
+#notices { display: grid; gap: 8px; }
+#notices:empty { display: none; }
+
+/* Readout */
+.readout { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.stat { background: var(--panel); padding: 14px 16px; min-width: 0; }
+.stat .k { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.stat .v { font: 500 24px/1.2 var(--font-mono); font-variant-numeric: tabular-nums; margin-top: 4px; overflow-wrap: anywhere; }
+.stat .s { font-size: 13px; color: var(--muted); }
+@media (max-width: 640px) { .readout { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.controls { display: flex; flex-wrap: wrap; align-items: end; gap: 14px 24px; }
+.field { display: grid; gap: 5px; font-size: 13px; color: var(--muted); min-width: 0; }
+.field select { font: 14.5px var(--font-body); padding: 8px 10px; border-radius: 7px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); max-width: 100%; }
+.slider { display: flex; align-items: center; gap: 10px; color: var(--ink); }
+.slider input { width: 180px; max-width: 46vw; accent-color: var(--ink); }
+.slider small { color: var(--muted); font-size: 12.5px; }
+.controls .go { margin-left: auto; display: grid; gap: 6px; justify-items: end; }
+.controls .go small { color: var(--muted); font-size: 12.5px; text-align: right; }
+@media (max-width: 640px) { .controls .go { margin-left: 0; justify-items: start; } .controls .go small { text-align: left; } }
+
+/* Arranger lane */
+.lane { display: flex; gap: 2px; height: 46px; }
+.lane .blk { flex: var(--n) 1 0; min-width: 6px; border-radius: 4px; background: var(--c); color: #fff; padding: 5px 7px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font: 600 13px/1.15 var(--font-body); cursor: pointer; border: 0; text-align: left; }
+.lane .blk small { display: block; font: 400 11px/1.3 var(--font-mono); opacity: .85; }
+.lane .blk.sel { outline: 2px solid var(--ink); outline-offset: 1px; }
+:root[data-theme="dark"] .lane .blk { color: #111317; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .lane .blk { color: #111317; } }
+.ruler { display: flex; gap: 2px; margin-top: 4px; }
+.ruler span { flex: var(--n) 1 0; min-width: 6px; font: 11px var(--font-mono); color: var(--muted); overflow: hidden; white-space: nowrap; }
+
+/* Grooves */
+.grooves { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 12px; }
+.groove { border: 1px solid var(--line); border-radius: 8px; padding: 12px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+.groove header { display: flex; align-items: center; gap: 10px; }
+.chip { flex: none; width: 26px; height: 26px; border-radius: 5px; background: var(--c); color: var(--panel); display: grid; place-items: center; font: 700 14px var(--font-mono); }
+.groove input { flex: 1; min-width: 0; font: 600 15px var(--font-body); padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink); }
+.groove .meta { font-size: 12.5px; color: var(--muted); }
+.groove .why { font-size: 12.5px; color: var(--muted); font-style: italic; }
+.check { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink); padding-bottom: 8px; cursor: pointer; }
+.check input { width: 16px; height: 16px; accent-color: var(--ink); }
+.pat { overflow-x: auto; }
+.pat table { border-collapse: separate; border-spacing: 2px; }
+.pat th { font: 500 11px var(--font-body); color: var(--muted); text-align: right; padding-right: 6px; white-space: nowrap; }
+.pat td { width: 11px; height: 11px; min-width: 11px; border-radius: 2px; background: var(--cell); padding: 0; }
+.pat td.beat { box-shadow: inset 2px 0 0 var(--line); }
+.pat td.on { background: var(--c); }
+
+/* Sections */
+.sections { display: grid; gap: 0; }
+.row { display: grid; grid-template-columns: 30px minmax(120px, 1.1fr) 92px 64px 74px 60px minmax(0, 2fr); gap: 12px; align-items: center; padding: 10px 4px; border-top: 1px solid var(--line); font-size: 14px; }
+.row.head { border-top: 0; font-size: 11.5px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); padding-block: 0 8px; }
+.row.sel { background: var(--cell); border-radius: 6px; }
+.row .name { display: flex; align-items: center; gap: 8px; font-weight: 600; min-width: 0; }
+.row .name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row .name .chip { width: 20px; height: 20px; font-size: 11.5px; border-radius: 4px; }
+.row .fills { color: var(--muted); font-size: 12.5px; font-weight: 400; }
+.cells { display: flex; flex-wrap: wrap; gap: 3px; min-width: 0; }
+.cells i { width: 13px; height: 13px; border-radius: 2px; background: var(--c); display: block; }
+.cells i.fill { background: repeating-linear-gradient(135deg, var(--c) 0 2px, transparent 2px 4.5px); box-shadow: inset 0 0 0 1.5px var(--c); }
+.row:not(.head) { cursor: pointer; }
+.row.dup > :not(.cells) { opacity: .5; }
+.row.dup .cells { opacity: .35; }
+.row .rep { font-size: 12px; font-weight: 500; color: var(--muted); }
+.lane .blk.dup { opacity: .35; }
+.go .btns { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+@media (max-width: 640px) { .go .btns { justify-content: flex-start; } }
+/* Humanizing */
+.hum-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 22px; margin-bottom: 6px; }
+.hum-head h2 { margin: 0; }
+.hum-head .check { padding: 0; }
+.hum-seed { margin-left: auto; display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 13.5px; }
+.hum-seed button { padding: 8px 12px; font-size: 13.5px; }
+.hum-status { margin: 0 0 14px; font-size: 13.5px; color: var(--muted); max-width: 80ch; }
+.hum-body.off { opacity: .4; pointer-events: none; }
+.hum-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 14px 32px; }
+@media (max-width: 760px) { .hum-grid { grid-template-columns: minmax(0, 1fr); } .hum-seed { margin-left: 0; } }
+.hum-table { display: grid; grid-template-columns: minmax(96px, auto) minmax(0, 1fr) minmax(0, 1fr); gap: 6px 16px; align-items: center; }
+.hum-table .th { font-size: 11.5px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); }
+.hum-table .gname { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; }
+.hum-table .gname i { width: 10px; height: 10px; border-radius: 2px; background: var(--c); }
+.hum-style { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 20px; align-content: start; }
+.rng { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 8px; min-width: 0; }
+.rng label { grid-column: 1 / -1; font-size: 12.5px; color: var(--muted); }
+.rng input { width: 100%; min-width: 0; accent-color: var(--c, var(--ink)); }
+.rng output { white-space: nowrap; min-width: 52px; font: 13px var(--font-mono); font-variant-numeric: tabular-nums; text-align: right; }
+.hum-table .rng label { display: none; }
+.mishit { grid-column: 1 / -1; display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr); gap: 10px 20px; align-items: end; padding-top: 12px; border-top: 1px solid var(--line); }
+.mishit .check { padding-bottom: 6px; }
+.mishit.off .rng { opacity: .4; pointer-events: none; }
+.mishit small { grid-column: 1 / -1; color: var(--muted); font-size: 12.5px; }
+@media (max-width: 760px) { .mishit { grid-template-columns: minmax(0, 1fr); } }
+.hum-prev { margin-top: 18px; }
+.hum-prev-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 16px; font-size: 13px; margin-bottom: 6px; }
+.hum-prev-head span:last-child { color: var(--muted); }
+#humCanvas { display: block; width: 100%; height: 180px; border-radius: 6px; background: var(--bg); }
+.hum-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-top: 16px; }
+.hum-actions small { color: var(--muted); font-size: 12.5px; }
+/* Note map */
+details.notes > summary { cursor: pointer; list-style: none; display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; }
+details.notes > summary::-webkit-details-marker { display: none; }
+details.notes > summary h2 { margin: 0; }
+details.notes > summary h2::before { content: "▸ "; }
+details.notes[open] > summary h2::before { content: "▾ "; }
+details.notes > summary span { color: var(--muted); font-size: 13px; }
+.notes-help { color: var(--muted); font-size: 13px; margin: 12px 0; max-width: 80ch; }
+.note-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr)); gap: 4px 24px; }
+.note-row { display: grid; grid-template-columns: 34px minmax(0, 1fr) 44px 128px; align-items: center; gap: 8px; padding: 4px 0; border-top: 1px solid var(--line); font-size: 13.5px; }
+.note-row .n { font-family: var(--font-mono); color: var(--muted); }
+.note-row .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.note-row .cnt { font-family: var(--font-mono); font-size: 12px; color: var(--muted); text-align: right; }
+.note-row select { font: 13px var(--font-body); padding: 4px 6px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); min-width: 0; }
+.note-row.changed select { border-color: var(--ink); }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); margin-top: 12px; align-items: center; }
+.legend i { display: inline-block; width: 13px; height: 13px; border-radius: 2px; vertical-align: -2px; margin-right: 6px; background: var(--muted); }
+.legend i.fill { background: repeating-linear-gradient(135deg, var(--muted) 0 2px, transparent 2px 4.5px); box-shadow: inset 0 0 0 1.5px var(--muted); }
+@media (max-width: 760px) {
+  .row { grid-template-columns: 26px minmax(0, 1fr) auto; row-gap: 6px; }
+  .row.head { display: none; }
+  .row .c-sig, .row .c-bpm { display: none; }
+  .row .c-start { text-align: right; }
+  .row .c-bars { grid-column: 2; font-size: 13px; color: var(--muted); }
+  .row .cells { grid-column: 2 / -1; }
+}
+footer { color: var(--muted); font-size: 13px; max-width: 70ch; }
+footer p { margin: 0 0 6px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+header.top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 12px 24px; }
+header.top > div:first-child { min-width: 0; flex: 1 1 420px; }
+.topctl { display: flex; align-items: center; gap: 10px; flex: none; }
+.helpbtn { display: inline-block; padding: 7px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); font: 600 13px var(--font-body); text-decoration: none; }
+.helpbtn:hover { border-color: var(--muted); }
+footer .links a, footer .copy a, .thanks a { color: var(--ink); }
+.thanks { color: var(--muted); font-size: 12.5px; }
+.lang { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--panel); flex: none; }
+.lang button { border: 0; border-radius: 0; padding: 7px 12px; font: 600 13px var(--font-body); background: transparent; color: var(--muted); }
+.lang button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+</style>
+
+<main>
+  <header class="top">
+    <div>
+      <h1>DrumSplit</h1>
+      <p class="lead">Træk et MIDI-trommespor ind. Siden finder tempo, taktart og sektioner som vers, omkvæd og breaks, og deler trommerne op i én MIDI-fil pr. sektion.</p>
+    </div>
+    <div class="topctl"><a class="helpbtn" id="helpLink" href="drumsplit-help.html" target="_blank" rel="noopener">Hjælp</a><div class="lang" role="group" aria-label="Sprog"><button data-lang="da" aria-pressed="true">Dansk</button><button data-lang="en" aria-pressed="false">English</button></div></div>
+  </header>
+
+  <div class="drop" id="drop">
+    <div class="file">
+      <strong id="fileName">Eksempelsang<span class="badge">Eksempel</span></strong>
+      <span id="fileInfo">En opdigtet sang, så du kan se hvordan det virker. Træk din egen .mid-fil hertil.</span>
+    </div>
+    <label class="btn primary" for="fileInput" id="pickBtn" style="background:var(--ink);color:var(--bg);border-color:var(--ink)">Vælg MIDI-fil</label>
+    <input type="file" id="fileInput" accept=".mid,.midi,audio/midi,audio/x-midi" hidden>
+  </div>
+
+  <div id="notices" role="status" aria-live="polite"></div>
+
+  <section class="readout" id="readout" aria-label="Oversigt"></section>
+
+  <section class="panel controls">
+    <div class="field" id="trackField" hidden>
+      <label for="trackSel">Spor med trommer</label>
+      <select id="trackSel"></select>
+    </div>
+    <div class="field">
+      <label for="sens">Følsomhed</label>
+      <div class="slider"><small>Færre sektioner</small><input type="range" id="sens" min="60" max="95" step="1" value="80"><small>Flere</small></div>
+    </div>
+    <div class="field">
+      <label for="mapSel">Trommekort</label>
+      <select id="mapSel">
+        <option value="auto" selected>Automatisk</option>
+        <option value="gm">General MIDI</option>
+        <option value="sd3">Superior Drummer 3</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="dupSel">Gentagelser</label>
+      <select id="dupSel">
+        <option value="similar" selected>Fjern gentagelser</option>
+        <option value="same">Fjern kun helt ens sektioner</option>
+        <option value="groove">Kun én sektion pr. groove</option>
+        <option value="keep">Behold alle</option>
+      </select>
+    </div>
+    <label class="check" for="fillChk"><input type="checkbox" id="fillChk" checked> Fills som egne filer</label>
+    <div class="go">
+      <div class="btns">
+        <button id="folderBtn" hidden>Gem i mappe…</button>
+        <button class="primary" id="saveBtn">Hent sektioner (.zip)</button>
+      </div>
+      <small class="thanks" id="thanks" hidden></small>
+      <small id="saveNote">Én MIDI-fil pr. sektion, med tempo og taktart</small>
+    </div>
+  </section>
+
+  <section class="panel">
+    <details class="notes" id="notesBox">
+      <summary><h2>Noder i sporet</h2><span id="notesSummary"></span></summary>
+      <p class="notes-help">Hver node i dit trommespor og hvilken tromme den tæller som. Det bruges til at finde sektionerne. Har du ændret kortet i Superior Drummer, retter du gruppen her. Dine rettelser huskes.</p>
+      <div class="note-list" id="noteList"></div>
+      <div class="hum-actions"><button id="mapReset">Nulstil mine rettelser</button></div>
+    </details>
+  </section>
+
+  <section class="panel">
+    <h2>Sangens forløb</h2>
+    <div class="lane" id="lane"></div>
+    <div class="ruler" id="ruler"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Grooves</h2>
+    <div class="grooves" id="grooves"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Sektioner</h2>
+    <div class="sections" id="sections"></div>
+    <div class="legend"><span><i></i>Takt i sektionens groove</span><span><i class="fill"></i>Fill</span><span>Andre farver: takter der ligner en anden groove</span><span>Nedtonet: gentagelse, kommer ikke med</span><span>Ændrer du følsomheden, gættes navnene forfra</span></div>
+  </section>
+
+  <footer>
+    <p>Alt foregår i din browser. Filen bliver ikke sendt nogen steder hen.</p>
+    <p id="whereNote">Hvor filen gemmes, bestemmer din browser. I Chrome og Edge kan du slå "Spørg, hvor hver fil skal gemmes" til under Indstillinger → Downloads, så får du et Gem som-vindue. Åbner du DrumSplit som en fil på din computer, kan du vælge en mappe og få MIDI-filerne lagt direkte i den.</p>
+    <p>Fra Cubase: vælg trommesporet, File → Export → MIDI File. Sektionerne starter på den første takt og flyttes til takt 1 i hver fil, så de kan trækkes direkte ind i et nyt projekt.</p>
+    <p class="links" id="linksRow" hidden></p>
+    <p class="copy" id="copyRow"></p>
+  </footer>
+</main>
+
+<script>
+/*__LINKS__*/
+</script>
+<script>
+/*__I18N__*/
+</script>
+<script>
+/*__CORE__*/
+</script>
+<script>
+(() => {
+  const DS = window.DrumSplit;
+  const $ = (id) => document.getElementById(id);
+
+  // ---- language -------------------------------------------------------------------------
+  const T = I18N.L, tr = I18N.tr;
+  function setLanguage(l, save) {
+    if (l === I18N.lang && save !== "force") return;
+    I18N.setLang(l); I18N.remember(l);
+    if (typeof window.nativeSetLang === "function") { try { window.nativeSetLang(l); } catch (e) {} }
+    if (state.midi) run();
+    if (save) savePrefs();
+  }
+  document.querySelectorAll("[data-lang]").forEach((b) => b.addEventListener("click", () => setLanguage(b.dataset.lang, true)));
+
+  // ---- help, links and a thank-you after saving -------------------------------------------
+  const LINKS = globalThis.DRUMTOOLS_LINKS || {};
+  const escL = (v) => String(v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const TOOL = "drumsplit";
+  const isNative = typeof window.nativeOpenHelp === "function";
+  const openHelp = (e, anchor) => {
+    if (isNative) { e.preventDefault(); window.nativeOpenHelp(); return; }
+    e.currentTarget.href = `${TOOL}-help.html#${anchor || I18N.lang}`;
+  };
+  $("helpLink").addEventListener("click", (e) => openHelp(e));
+  document.addEventListener("click", (e) => {
+    const a = e.target.closest && e.target.closest("a[data-ext]");
+    if (a && isNative) { e.preventDefault(); window.nativeOpenURL(a.href); }
+  });
+  function renderLinks() {
+    const ext = (href, text) => `<a data-ext href="${escL(href)}" target="_blank" rel="noopener">${text}</a>`;
+    const items = [];
+    if (LINKS.donate) items.push(ext(LINKS.donate, "Støt projektet"));
+    if (LINKS.buy && !isNative) items.push(ext(LINKS.buy, "Hent Windows-programmet"));
+    if (LINKS.website && isNative) items.push(ext(LINKS.website, "Gratis online-version"));
+    if (LINKS.source) items.push(ext(LINKS.source, "Kildekode"));
+    $("linksRow").innerHTML = items.join(" · ");
+    $("linksRow").hidden = !items.length;
+    $("copyRow").innerHTML = `© ${escL(globalThis.DRUMTOOLS_YEAR || "")} ${escL(globalThis.DRUMTOOLS_AUTHOR || "")} · <a id="licLink" href="${TOOL}-help.html#license" target="_blank" rel="noopener">Licens og tak</a>`;
+    $("licLink").addEventListener("click", (e) => openHelp(e, "license"));
+    if (LINKS.donate) $("thanks").innerHTML = `Sparede det dig tid? ${ext(LINKS.donate, "Giv en kop kaffe")}`;
+  }
+  renderLinks();
+  const watchSaved = (el) => el && new MutationObserver(() => {
+    if (LINKS.donate && /^(Gemt|Hentet|Saved|Downloaded):/.test(el.textContent)) $("thanks").hidden = false;
+  }).observe(el, { childList: true, characterData: true, subtree: true });
+  ["saveNote", "trackNote"].forEach((id) => watchSaved($(id)));
+  const LETTER_VARS = ["--g-a", "--g-b", "--g-c", "--g-d", "--g-e", "--g-f", "--g-g", "--g-h"];
+  const colorOf = (L) => `var(${LETTER_VARS[(L.charCodeAt(0) - 65) % LETTER_VARS.length]})`;
+
+  const state = { midi: null, fileName: "", baseName: "", example: true, analysis: null, trackIndex: null, names: {}, selected: 0, downloads: undefined, repeats: [], why: {},
+    buffer: null, mapSel: "auto", mapOverrides: { gm: {}, sd3: {} } };
+  const keepIdx = () => state.analysis ? state.analysis.sections.map((s, i) => i).filter((i) => state.repeats[i].of < 0) : [];
+  const updateRepeats = () => { state.repeats = state.analysis ? DS.repeatInfo(state.analysis, $("dupSel").value) : []; };
+
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const mmss = (sec) => { const s = Math.round(sec); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; };
+  const bpmText = (b) => (Math.abs(b - Math.round(b)) < 0.05 ? Math.round(b) : b.toFixed(1));
+
+  function notice(text, kind) {
+    const d = document.createElement("div");
+    d.className = "notice" + (kind === "error" ? " error" : "");
+    d.textContent = text;
+    $("notices").appendChild(d);
+  }
+
+  function sectionLabel(sec) {
+    const n = (state.names[sec.letter] || "").trim();
+    if (!n) return `${sec.letter}${sec.repeat}`;
+    return sec.timesUsed > 1 ? `${n} ${sec.repeat}` : n;
+  }
+
+  // ---- loading ------------------------------------------------------------------------
+  function load(buffer, name, isExample) {
+    let midi;
+    try { midi = DS.readMidi(buffer); }
+    catch (e) {
+      $("notices").innerHTML = "";
+      notice(`${name} kunne ikke læses: ${e.message}`, "error");
+      return;
+    }
+    state.midi = midi; state.buffer = buffer; state.fileName = name; state.example = !!isExample;
+    state.baseName = name.replace(/\.(mid|midi)$/i, "");
+    state.trackIndex = null; state.selected = 0;
+    run();
+  }
+
+  function run() {
+    $("notices").innerHTML = "";
+    try {
+      state.analysis = DS.analyse(state.midi, { trackIndex: state.trackIndex, sensitivity: +$("sens").value / 100,
+        mapKind: state.mapSel, mapOverrides: state.mapOverrides });
+    } catch (e) {
+      state.analysis = null;
+      notice(e.message, "error");
+      render();
+      return;
+    }
+    state.trackIndex = state.analysis.trackIndex;
+    // Name guesses (redone whenever the analysis changes; the viewer can overwrite them)
+    const guess = DS.suggestNames(state.analysis);
+    state.names = {}; state.why = {};
+    for (const [L, g] of Object.entries(guess)) { state.names[L] = I18N.sectionName(g.name); state.why[L] = g.why; }
+    updateRepeats();
+    if (state.selected >= state.analysis.sections.length) state.selected = 0;
+    render();
+  }
+
+  // ---- note map -----------------------------------------------------------------------
+  function renderNotes() {
+    const a = state.analysis, kind = a.mapKind;
+    const counts = new Map();
+    for (const n of a.notes) counts.set(n.note, (counts.get(n.note) || 0) + 1);
+    const own = state.mapOverrides[kind] || {};
+    const label = DS.MAPS[kind].label + (state.mapSel === "auto" ? " (fundet automatisk)" : "");
+    const nChanged = Object.keys(own).filter((k) => counts.has(+k)).length;
+    $("notesSummary").textContent = `${counts.size} forskellige noder · ${label}${nChanged ? ` · ${nChanged} rettet af dig` : ""}`;
+    const opts = DS.GROUPS.map((g, i) => `<option value="${i}">${esc(g.label)}</option>`).join("");
+    $("noteList").innerHTML = [...counts.keys()].sort((x, y) => x - y).map((n) => {
+      const name = DS.noteName(kind, n) || "Ukendt node";
+      return `<div class="note-row${n in own ? " changed" : ""}"><span class="n">${n}</span><span class="nm" title="${esc(name)}">${esc(name)}</span>` +
+        `<span class="cnt">${counts.get(n)}×</span><select data-note="${n}" aria-label="Gruppe for node ${n}">${opts}</select></div>`;
+    }).join("");
+    $("noteList").querySelectorAll("select").forEach((el) => { el.value = String(a.noteMap[+el.dataset.note]); });
+  }
+  $("noteList").addEventListener("change", (e) => {
+    const n = e.target.dataset.note; if (n === undefined) return;
+    const kind = state.analysis.mapKind;
+    const preset = DS.makeNoteMap(kind, {})[+n];
+    if (+e.target.value === preset) delete state.mapOverrides[kind][n];
+    else state.mapOverrides[kind][n] = +e.target.value;
+    savePrefs(); run();
+  });
+  $("mapReset").addEventListener("click", () => {
+    state.mapOverrides[state.analysis.mapKind] = {};
+    savePrefs(); run();
+  });
+  $("mapSel").addEventListener("change", (e) => { state.mapSel = e.target.value; savePrefs(); run(); });
+
+
+  // ---- rendering ----------------------------------------------------------------------
+  function render() {
+    const a = state.analysis;
+    $("fileName").innerHTML = esc(state.example ? "Eksempelsang" : state.fileName) + (state.example ? '<span class="badge">Eksempel</span>' : "");
+    $("fileInfo").textContent = state.example
+      ? "En opdigtet sang, så du kan se hvordan det virker. Træk din egen .mid-fil hertil."
+      : a ? `${a.notes.length} trommeslag · ${a.bars.length} takter · PPQ ${a.ppq}` : "";
+    $("saveBtn").disabled = !a || (state.downloads === null && !localSave);
+    if (!a) { ["readout", "lane", "ruler", "grooves", "sections"].forEach((id) => ($(id).innerHTML = "")); return; }
+
+    // notices about what was guessed
+    if (!a.hasTempo) notice("Filen har intet tempo. Siden bruger 120 BPM, så tiderne passer måske ikke, men takterne og sektionerne gør.");
+    if (a.sigEstimated) notice(`Filen har ingen taktart. Ud fra trommerne ligner det ${a.sigList[0].sig}.`);
+    if (a.gridFit < 0.6) notice(`Kun ${Math.round(a.gridFit * 100)} % af slagene ligger på takt-gitteret. Sporet er nok indspillet uden klik eller med et andet tempo end filens, så sektionerne kan være upræcise.`);
+
+    // tracks
+    const tracks = a.tracks;
+    $("trackField").hidden = tracks.length < 2;
+    $("trackSel").innerHTML = tracks.map((t) => `<option value="${t.index}"${t.index === a.trackIndex ? " selected" : ""}>${esc(t.name)} (${t.notes} noder)</option>`).join("");
+
+    // readout
+    const sigs = [...new Set(a.sigList.map((s) => s.sig))];
+    const tempo = a.bpmMin === a.bpmMax ? `${bpmText(a.bpmMin)}` : `${bpmText(a.bpmMin)}–${bpmText(a.bpmMax)}`;
+    const tempoNote = !a.hasTempo ? "ikke i filen" : a.bpmMin === a.bpmMax ? "BPM, fast" : `BPM, ${a.tempos.length - 1} skift`;
+    const sigNote = a.sigEstimated ? "gættet" : sigs.length > 1 ? ((k) => `skifter ${k} ${k === 1 ? "gang" : "gange"}`)(a.sigList.filter((s, i, l) => i && s.sig !== l[i - 1].sig).length) : "hele sangen";
+    const letters = [...new Set(a.sections.map((s) => s.letter))];
+    $("readout").innerHTML = [
+      ["Tempo", tempo, tempoNote],
+      ["Taktart", sigs.join(" · "), sigNote],
+      ["Længde", mmss(a.lengthSec), `${a.bars.length} takter`],
+      ["Sektioner", a.sections.length, keepIdx().length < a.sections.length ? `${keepIdx().length} uden gentagelser` : `${letters.length} forskellige grooves`],
+    ].map(([k, v, s]) => `<div class="stat"><div class="k">${k}</div><div class="v">${esc(v)}</div><div class="s">${esc(s)}</div></div>`).join("");
+
+    renderNotes();
+    renderLane();
+    renderGrooves(letters);
+    renderSections();
+    updateSaveNote();
+  }
+
+  /** Fill bars, without repeats of the same fill. */
+  function uniqueFills() {
+    const a = state.analysis, out = [];
+    a.sections.forEach((sec) => {
+      for (let b = sec.startBar; b < sec.endBar; b++) {
+        if (!a.isFill[b] || !a.feats[b].hits) continue;
+        const dupe = out.some((f) => a.bars[f.bar].num === a.bars[b].num && a.bars[f.bar].den === a.bars[b].den &&
+          DS.similarity(a.feats[f.bar], a.feats[b]) >= 0.9);
+        if (!dupe) out.push({ bar: b, sec });
+      }
+    });
+    return out;
+  }
+
+  function updateSaveNote() {
+    const a = state.analysis; if (!a) return;
+    if (state.downloads === null && !localSave) return;
+    const n = keepIdx().length, skipped = a.sections.length - n;
+    const f = $("fillChk").checked ? uniqueFills().length : 0;
+    $("saveNote").textContent = `${n} ${n === 1 ? "sektion" : "sektioner"}${f ? ` + ${f} ${f === 1 ? "fill" : "fills"}` : ""} som MIDI-filer` + (skipped ? `, ${skipped} ${skipped === 1 ? "gentagelse" : "gentagelser"} springes over` : "");
+  }
+
+  function renderLane() {
+    const a = state.analysis;
+    $("lane").innerHTML = a.sections.map((s, i) =>
+      `<button class="blk${i === state.selected ? " sel" : ""}${state.repeats[i].of >= 0 ? " dup" : ""}" data-i="${i}" style="--n:${s.bars};--c:${colorOf(s.letter)}" title="${esc(sectionLabel(s))}, takt ${s.startBar + 1}–${s.endBar}">${esc(sectionLabel(s))}<small>${s.bars} t.</small></button>`).join("");
+    $("ruler").innerHTML = a.sections.map((s) => `<span style="--n:${s.bars}">${s.startBar + 1}</span>`).join("");
+  }
+
+  function grooveBar(letter) {
+    const a = state.analysis;
+    for (const s of a.sections) {
+      if (s.letter !== letter) continue;
+      for (let b = s.startBar; b < s.endBar; b++) if (a.ids[b] === s.cluster && !a.isFill[b] && a.feats[b].hits) return b;
+      for (let b = s.startBar; b < s.endBar; b++) if (a.feats[b].hits) return b;
+    }
+    return -1;
+  }
+
+  function patternTable(b, c) {
+    const a = state.analysis, f = a.feats[b], bar = a.bars[b];
+    const cols = Math.max(1, Math.round(f.steps / 3));            // 16th notes
+    const perBeat = Math.round(4 / bar.den * 4) || 1;            // 16ths per beat
+    let rows = "";
+    DS.GROUPS.forEach((g, gi) => {
+      const cells = [];
+      let any = false;
+      for (let k = 0; k < cols; k++) {
+        let v = 0;
+        for (let s = k * 3 - 1; s <= k * 3 + 1; s++) if (s >= 0 && s < f.steps) v = Math.max(v, f.v[gi * f.steps + s]);
+        if (v) any = true;
+        const op = v ? (0.35 + 0.65 * Math.min(1, v / g.weight)).toFixed(2) : 0;
+        cells.push(`<td class="${v ? "on" : ""}${k % perBeat === 0 && k ? " beat" : ""}"${v ? ` style="opacity:${op}"` : ""}></td>`);
+      }
+      if (any) rows += `<tr><th>${esc(g.label)}</th>${cells.join("")}</tr>`;
+    });
+    return `<div class="pat" style="--c:${c}"><table aria-label="Mønster i takt ${b + 1}">${rows}</table></div>`;
+  }
+
+  function renderGrooves(letters) {
+    const a = state.analysis;
+    $("grooves").innerHTML = letters.map((L) => {
+      const secs = a.sections.filter((s) => s.letter === L);
+      const bars = secs.reduce((n, s) => n + s.bars, 0);
+      const b = grooveBar(L);
+      return `<div class="groove" style="--c:${colorOf(L)}">
+        <header><span class="chip">${L}</span><input id="name-${L}" data-letter="${L}" value="${esc(state.names[L] || "")}" placeholder="Navngiv, fx Vers" aria-label="Navn til groove ${L}"></header>
+        <div class="meta">${secs.length} ${secs.length === 1 ? "gang" : "gange"} · ${bars} takter i alt${b >= 0 ? ` · mønster fra takt ${b + 1}` : ""}</div>
+        ${state.why[L] ? `<div class="why">${esc("Navnet er et gæt: " + state.why[L])}</div>` : ""}
+        ${b >= 0 ? patternTable(b, colorOf(L)) : ""}
+      </div>`;
+    }).join("");
+  }
+
+  function renderSections() {
+    const a = state.analysis;
+    const head = `<div class="row head"><span>#</span><span>Navn</span><span>Takter</span><span>Taktart</span><span>Tempo</span><span>Start</span><span>Takt for takt</span></div>`;
+    $("sections").innerHTML = head + a.sections.map((s, i) => {
+      let cells = "";
+      for (let b = s.startBar; b < s.endBar; b++) {
+        const L = a.barLetters[b] || s.letter;
+        cells += `<i class="${a.isFill[b] ? "fill" : ""}" style="--c:${colorOf(L)}" title="Takt ${b + 1}${a.isFill[b] ? ", fill" : ""}"></i>`;
+      }
+      const r = state.repeats[i];
+      const same = (x) => `${x.matched} af ${s.bars} takter ens`;
+      const repTag = r.of >= 0
+        ? ` <span class="rep">gentager ${esc(sectionLabel(a.sections[r.of]))}${r.matched < s.bars ? ` (${same(r)})` : ""}, springes over</span>`
+        : r.near >= 0 ? ` <span class="rep">ligner ${esc(sectionLabel(a.sections[r.near]))} (${same(r)}), gemmes</span>` : "";
+      return `<div class="row${i === state.selected ? " sel" : ""}${r.of >= 0 ? " dup" : ""}" data-i="${i}">
+        <span class="num">${String(s.number).padStart(2, "0")}</span>
+        <span class="name"><span class="chip" style="--c:${colorOf(s.letter)}">${s.letter}</span><span>${esc(sectionLabel(s))}${s.fills ? ` <span class="fills">+ ${s.fills} fill</span>` : ""}${repTag}</span></span>
+        <span class="c-bars num">${s.startBar + 1}–${s.endBar} <span style="color:var(--muted)">(${s.bars})</span></span>
+        <span class="c-sig num">${s.sig}</span>
+        <span class="c-bpm num">${bpmText(s.bpm)}</span>
+        <span class="c-start num">${mmss(s.startSec)}</span>
+        <span class="cells">${cells}</span>
+      </div>`;
+    }).join("");
+  }
+
+  function select(i) {
+    state.selected = i;
+    document.querySelectorAll(".lane .blk").forEach((el) => el.classList.toggle("sel", +el.dataset.i === i));
+    document.querySelectorAll(".sections .row[data-i]").forEach((el) => el.classList.toggle("sel", +el.dataset.i === i));
+  }
+
+  // ---- events -------------------------------------------------------------------------
+  $("lane").addEventListener("click", (e) => { const b = e.target.closest(".blk"); if (b) select(+b.dataset.i); });
+  $("sections").addEventListener("click", (e) => { const r = e.target.closest(".row[data-i]"); if (r) select(+r.dataset.i); });
+  $("grooves").addEventListener("input", (e) => {
+    const L = e.target.dataset.letter; if (!L) return;
+    state.names[L] = e.target.value;
+    renderLane(); renderSections();
+  });
+  $("sens").addEventListener("input", () => run());
+  // Settings are remembered between sessions (in the program through Windows, otherwise in the browser)
+  function savePrefs() {
+    const json = JSON.stringify({ mapSel: state.mapSel, mapOverrides: state.mapOverrides, lang: I18N.lang });
+    if (typeof window.nativeSavePrefs === "function") { try { window.nativeSavePrefs(json); } catch (e) {} return; }
+    try { localStorage.setItem("drumsplit.prefs", json); } catch (e) {}
+  }
+  function applyPrefs(json) {
+    try {
+      const p = JSON.parse(json);
+      if (p) {
+        if (p.lang) { I18N.setLang(p.lang); I18N.remember(p.lang); }
+        if (p.mapSel) { state.mapSel = p.mapSel; $("mapSel").value = p.mapSel; }
+        if (p.mapOverrides) state.mapOverrides = Object.assign({ gm: {}, sd3: {} }, p.mapOverrides);
+        run();
+      }
+    } catch (e) {}
+  }
+  $("dupSel").addEventListener("change", () => { updateRepeats(); render(); });
+  $("fillChk").addEventListener("change", () => updateSaveNote());
+  $("trackSel").addEventListener("change", (e) => { state.trackIndex = +e.target.value; run(); });
+
+  $("fileInput").addEventListener("change", (e) => { const f = e.target.files[0]; if (f) readFile(f); e.target.value = ""; });
+  function readFile(f) {
+    f.arrayBuffer().then((buf) => load(buf, f.name, false), () => notice(`${f.name} kunne ikke åbnes.`, "error"));
+  }
+  const drop = $("drop");
+  let depth = 0;
+  window.addEventListener("dragenter", (e) => { e.preventDefault(); depth++; drop.classList.add("over"); });
+  window.addEventListener("dragleave", () => { if (--depth <= 0) { depth = 0; drop.classList.remove("over"); } });
+  window.addEventListener("dragover", (e) => e.preventDefault());
+  window.addEventListener("drop", (e) => {
+    e.preventDefault(); depth = 0; drop.classList.remove("over");
+    const f = e.dataTransfer && e.dataTransfer.files[0];
+    if (f) readFile(f);
+  });
+
+  // ---- download -----------------------------------------------------------------------
+  const safe = (s) => s.replace(/[\\/:*?"<>|\u0000-\u001f]/g, "_").replace(/\s+/g, " ").trim() || "sektion";
+  // Opened as a file on the computer (not inside Claude): normal downloads and folder picking work
+  const insideClaude = !!(window.claude && typeof window.claude.use === "function");
+  const localSave = !insideClaude;
+  // Running as the Windows program: saving goes through real Windows dialogs
+  const native = typeof window.nativeSaveFolder === "function" && typeof window.nativeSaveZip === "function";
+  const nativeFile = typeof window.nativeSaveFile === "function";
+  const canPickFolder = native || (localSave && typeof window.showDirectoryPicker === "function" && window.self === window.top);
+  $("folderBtn").hidden = !canPickFolder;
+  if (native) $("whereNote").textContent = "Du vælger selv hvor filerne gemmes, og programmet husker den sidste mappe til næste gang.";
+
+  const toBase64 = (bytes) => {
+    let bin = "";
+    for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    return btoa(bin);
+  };
+  // The program answers through window.__nativeResult once the dialog is closed
+  const nativeCall = (fn, ...args) => new Promise((resolve) => { window.__nativeResult = resolve; window[fn](...args); });
+  function nativeReport(r, what) {
+    if (!r || r.cancelled) return;
+    $("saveNote").textContent = r.error ? `${what} kunne ikke gemmes: ${r.error}` : `Gemt: ${r.path}`;
+  }
+
+  function buildFiles() {
+    const a = state.analysis;
+    const files = keepIdx().map((i) => {
+      const s = a.sections[i], label = sectionLabel(s);
+      return { name: `${String(s.number).padStart(2, "0")} ${safe(label)}.mid`, data: DS.sectionToMidi(a, s, label) };
+    });
+    if ($("fillChk").checked) uniqueFills().forEach((f, k) => {
+      const bar = a.bars[f.bar];
+      const one = { startBar: f.bar, endBar: f.bar + 1, startTick: bar.start, endTick: bar.end };
+      const label = `Fill ${k + 1} (${sectionLabel(f.sec)}, ${T("takt", "bar")} ${f.bar + 1})`;
+      files.push({ name: `F${String(k + 1).padStart(2, "0")} ${safe(label)}.mid`, data: DS.sectionToMidi(a, one, label) });
+    });
+    return files;
+  }
+  const songName = () => safe(state.example ? T("Eksempelsang", "Example song") : state.baseName);
+
+  $("folderBtn").addEventListener("click", async () => {
+    if (!state.analysis) return;
+    if (native) {
+      const files = buildFiles().map((f) => ({ name: f.name, data: toBase64(f.data) }));
+      nativeReport(await nativeCall("nativeSaveFolder", `${songName()} - ${T("sektioner", "sections")}`, files), "Filerne");
+      return;
+    }
+    let dir;
+    try { dir = await window.showDirectoryPicker({ id: "drumsplit", mode: "readwrite" }); }
+    catch (err) { if (err && err.name !== "AbortError") $("saveNote").textContent = "Mappen kunne ikke åbnes: " + err.message; return; }
+    const files = buildFiles();
+    try {
+      const sub = await dir.getDirectoryHandle(`${songName()} - ${T("sektioner", "sections")}`, { create: true });
+      for (const f of files) {
+        const h = await sub.getFileHandle(f.name, { create: true });
+        const w = await h.createWritable();
+        await w.write(f.data); await w.close();
+      }
+      $("saveNote").textContent = `Gemt: ${files.length} MIDI-filer i ${dir.name}/${sub.name}`;
+    } catch (err) {
+      $("saveNote").textContent = "Filerne kunne ikke gemmes: " + err.message;
+    }
+  });
+
+  $("saveBtn").addEventListener("click", async () => {
+    const a = state.analysis; if (!a) return;
+    const files = buildFiles();
+    const zip = DS.makeZip(files);
+    const zipName = `${songName()} - ${T("sektioner", "sections")}.zip`;
+    if (native) {
+      nativeReport(await nativeCall("nativeSaveZip", zipName, toBase64(zip)), "Zip-filen");
+      return;
+    }
+    if (localSave) {
+      const url = URL.createObjectURL(new Blob([zip], { type: "application/zip" }));
+      const link = document.createElement("a");
+      link.href = url; link.download = zipName; document.body.appendChild(link); link.click(); link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      $("saveNote").textContent = `Hentet: ${files.length} MIDI-filer i ${zipName}`;
+      return;
+    }
+    if (!state.downloads) { $("saveNote").textContent = "Download er ikke klar endnu. Prøv igen om et øjeblik."; return; }
+    try {
+      await state.downloads.save({ filename: zipName, data: zip });
+      $("saveNote").textContent = `Gemt: ${files.length} MIDI-filer i ${zipName}`;
+    } catch (err) {
+      const code = err && err.code;
+      $("saveNote").textContent = code === "declined" ? "Download annulleret."
+        : code === "rate_limited" ? "Der er allerede en download i gang. Prøv igen om lidt."
+        : "Download virker ikke her. Åbn siden i Claude for at hente filerne.";
+    }
+  });
+
+  if (insideClaude) {
+    window.claude.use("downloads").then((d) => {
+      state.downloads = d;
+      if (!d) { $("saveBtn").disabled = true; $("saveNote").textContent = "Download virker kun når siden er åbnet i Claude."; }
+    }, () => { state.downloads = null; $("saveBtn").disabled = true; });
+  }
+
+  // ---- start with the example song ----------------------------------------------------
+  I18N.setLang(I18N.initialLang());
+  I18N.start();
+  load(DS.writeExampleMidi(7), "Eksempelsang.mid", true);
+  if (typeof window.nativeLoadPrefs === "function") window.nativeLoadPrefs().then((j) => j && applyPrefs(j), () => {});
+  else { try { const j = localStorage.getItem("drumsplit.prefs"); if (j) applyPrefs(j); } catch (e) {} }
+})();
+</script>

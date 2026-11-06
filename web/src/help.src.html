@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="en" data-show="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TOOL}} Help</title>
+<link rel="icon" type="image/png" href="{{FAVICON}}">
+<style>
+/* Layout: one reading column with a sticky contents list on wide screens */
+:root {
+  --bg: #eef0f3; --panel: #fbfbfc; --ink: #15181d; --muted: #5d6573; --line: #d5d9e0; --accent: #2f68c9;
+  --font-display: "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "Cascadia Mono", Consolas, ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #111317; --panel: #1a1d23; --ink: #e8eaee; --muted: #9aa2b0; --line: #2d323b; --accent: #6f9cf0; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --bg: #111317; --panel: #1a1d23; --ink: #e8eaee; --muted: #9aa2b0; --line: #2d323b; --accent: #6f9cf0; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 var(--font-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 64px; }
+html[data-show="en"] [lang="da"], html[data-show="da"] [lang="en"] { display: none !important; }
+.wrap { max-width: 1060px; margin: 0 auto; display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 32px; }
+@media (max-width: 820px) { .wrap { grid-template-columns: minmax(0, 1fr); } nav.toc { position: static !important; } }
+header.top { grid-column: 1 / -1; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 12px 24px; }
+h1 { font: 700 clamp(28px, 4.5vw, 38px)/1.1 var(--font-display); margin: 0; letter-spacing: -0.01em; }
+.sub { margin: 6px 0 0; color: var(--muted); }
+.lang { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--panel); }
+.lang button { border: 0; padding: 7px 12px; font: 600 13px var(--font-body); background: transparent; color: var(--muted); cursor: pointer; }
+.lang button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+nav.toc { position: sticky; top: 16px; align-self: start; font-size: 14px; }
+nav.toc ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+nav.toc a { color: var(--muted); text-decoration: none; }
+nav.toc a:hover { color: var(--ink); }
+main { min-width: 0; }
+section { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 20px 24px; margin-bottom: 18px; }
+h2 { font: 650 21px/1.25 var(--font-display); margin: 0 0 10px; text-wrap: balance; }
+h3 { font: 650 16.5px/1.3 var(--font-body); margin: 18px 0 6px; }
+p, li { max-width: 72ch; }
+p { margin: 8px 0; }
+ul, ol { padding-left: 1.3em; margin: 8px 0; }
+li { margin: 4px 0; }
+dl { margin: 8px 0; display: grid; grid-template-columns: minmax(130px, max-content) minmax(0, 1fr); gap: 6px 18px; }
+dt { font-weight: 650; }
+dd { margin: 0; }
+@media (max-width: 560px) { dl { grid-template-columns: minmax(0, 1fr); } dd { margin: 0 0 8px; } }
+code, kbd { font: 14px var(--font-mono); background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
+.note { border-left: 3px solid var(--accent); padding: 6px 12px; background: var(--bg); border-radius: 0 6px 6px 0; }
+a { color: var(--accent); }
+details { margin-top: 10px; }
+summary { cursor: pointer; font-weight: 600; }
+pre.lic { white-space: pre-wrap; font: 13px/1.5 var(--font-mono); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 12px; overflow-x: auto; }
+footer { grid-column: 1 / -1; color: var(--muted); font-size: 13.5px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>{{TOOL}} <span lang="en">Help</span><span lang="da">Hjælp</span></h1>
+      <p class="sub" lang="en">{{TAGLINE_EN}}</p>
+      <p class="sub" lang="da">{{TAGLINE_DA}}</p>
+    </div>
+    <div class="lang" role="group" aria-label="Language / Sprog"><button data-lang="en" aria-pressed="true">English</button><button data-lang="da" aria-pressed="false">Dansk</button></div>
+  </header>
+
+  <nav class="toc" aria-label="Contents">
+    <ol>
+      <li><a href="#start"><span lang="en">Quick start</span><span lang="da">Kom i gang</span></a></li>
+      <li><a href="#controls"><span lang="en">The controls</span><span lang="da">Knapperne</span></a></li>
+      <li><a href="#tips"><span lang="en">Tips</span><span lang="da">Gode råd</span></a></li>
+      <li><a href="#drummap"><span lang="en">Drum map</span><span lang="da">Trommekort</span></a></li>
+      <li><a href="#windows"><span lang="en">Windows program</span><span lang="da">Windows-programmet</span></a></li>
+      <li><a href="#trouble"><span lang="en">Troubleshooting</span><span lang="da">Fejlfinding</span></a></li>
+      <li><a href="#privacy"><span lang="en">Privacy</span><span lang="da">Privatliv</span></a></li>
+      <li id="tocSupport" hidden><a href="#support"><span lang="en">Support</span><span lang="da">Støt projektet</span></a></li>
+      <li><a href="#license"><span lang="en">Licence and credits</span><span lang="da">Licens og tak</span></a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+<!--tool:drumsplit-->
+  <section id="start">
+    <h2 lang="en">Quick start</h2>
+    <h2 lang="da">Kom i gang</h2>
+    <ol lang="en">
+      <li>Export your drum track as a MIDI file. In Cubase: select the drum track, then <b>File → Export → MIDI File</b>. Other tracks in the file do no harm.</li>
+      <li>Drop the file on DrumSplit, or click <b>Choose MIDI file</b>.</li>
+      <li>Check the overview: tempo, time signature, length and the sections it found.</li>
+      <li>Give the grooves names if the guesses are wrong (Verse, Chorus …).</li>
+      <li>Click <b>Save to folder…</b> or <b>Download sections (.zip)</b>. Each section becomes its own MIDI file, starting at bar 1, with its tempo and time signature.</li>
+    </ol>
+    <ol lang="da">
+      <li>Eksportér dit trommespor som MIDI-fil. I Cubase: vælg trommesporet, og så <b>File → Export → MIDI File</b>. Andre spor i filen gør ikke noget.</li>
+      <li>Træk filen ind i DrumSplit, eller klik <b>Vælg MIDI-fil</b>.</li>
+      <li>Se oversigten: tempo, taktart, længde og de sektioner, den har fundet.</li>
+      <li>Giv grooverne navne, hvis gættene er forkerte (Vers, Omkvæd …).</li>
+      <li>Klik <b>Gem i mappe…</b> eller <b>Hent sektioner (.zip)</b>. Hver sektion bliver sin egen MIDI-fil, der starter på takt 1, med tempo og taktart.</li>
+    </ol>
+  </section>
+
+  <section id="controls">
+    <h2 lang="en">The controls</h2>
+    <h2 lang="da">Knapperne</h2>
+    <dl lang="en">
+      <dt>Track with drums</dt><dd>Shown when the file has several tracks with notes. DrumSplit picks the drum track itself (channel 10 first); change it here if it guessed wrong.</dd>
+      <dt>Sensitivity</dt><dd>How alike two bars must be to count as the same groove. Lower gives fewer, longer sections; higher gives more and shorter ones. Changing it guesses the names again.</dd>
+      <dt>Drum map</dt><dd>Which drum each note is. <i>Automatic</i> recognises General MIDI and Superior Drummer 3. See <a href="#drummap">Drum map</a>.</dd>
+      <dt>Repeats</dt><dd><i>Remove repeats</i>: a section is skipped when at least 75 % of its bars were already played in an earlier section (a different fill or an extra bar still counts as a repeat). <i>Remove only identical sections</i>: same length and every bar alike. <i>Only one section per groove</i>: the first of each kind. <i>Keep all</i>: nothing is skipped.</dd>
+      <dt>Fills as separate files</dt><dd>Every different fill is also saved as a one-bar file (F01, F02 …). The fills stay in their sections too.</dd>
+      <dt>Save to folder…</dt><dd>Choose a folder; a subfolder named after the song is made and the MIDI files go straight into it. In a browser this works in Chrome and Edge.</dd>
+      <dt>Download sections (.zip)</dt><dd>All the MIDI files in one zip file.</dd>
+      <dt>Song structure</dt><dd>The sections as coloured blocks, one colour per groove. Click a block to highlight it in the list.</dd>
+      <dt>Grooves</dt><dd>Each kind of groove with a name field, the reason for the guessed name and the drum pattern of a typical bar.</dd>
+      <dt>Sections</dt><dd>Every section with its bars, time signature, tempo and start time. The small squares are the bars: hatched = fill, another colour = a bar that sounds like another groove, dimmed row = a repeat that is left out.</dd>
+    </dl>
+    <dl lang="da">
+      <dt>Spor med trommer</dt><dd>Vises, når filen har flere spor med noder. DrumSplit vælger selv trommesporet (kanal 10 først); vælg et andet her, hvis den gættede forkert.</dd>
+      <dt>Følsomhed</dt><dd>Hvor ens to takter skal være for at tælle som samme groove. Lavere giver færre og længere sektioner, højere giver flere og kortere. Når du ændrer den, gættes navnene forfra.</dd>
+      <dt>Trommekort</dt><dd>Hvilken tromme hver node er. <i>Automatisk</i> genkender General MIDI og Superior Drummer 3. Se <a href="#drummap">Trommekort</a>.</dd>
+      <dt>Gentagelser</dt><dd><i>Fjern gentagelser</i>: en sektion springes over, når mindst 75 % af dens takter allerede er spillet i en tidligere sektion (en anden fill eller en ekstra takt tæller stadig som gentagelse). <i>Fjern kun helt ens sektioner</i>: samme længde og alle takter ens. <i>Kun én sektion pr. groove</i>: den første af hver slags. <i>Behold alle</i>: intet springes over.</dd>
+      <dt>Fills som egne filer</dt><dd>Hver forskellig fill gemmes også som en fil på én takt (F01, F02 …). De bliver også i deres sektioner.</dd>
+      <dt>Gem i mappe…</dt><dd>Vælg en mappe; der laves en undermappe med sangens navn, og MIDI-filerne lægges direkte i den. I en browser virker det i Chrome og Edge.</dd>
+      <dt>Hent sektioner (.zip)</dt><dd>Alle MIDI-filerne samlet i én zip-fil.</dd>
+      <dt>Sangens forløb</dt><dd>Sektionerne som farvede blokke, én farve pr. groove. Klik på en blok for at fremhæve den i listen.</dd>
+      <dt>Grooves</dt><dd>Hver slags groove med et navnefelt, grunden til det gættede navn og trommemønsteret i en typisk takt.</dd>
+      <dt>Sektioner</dt><dd>Hver sektion med takter, taktart, tempo og starttid. De små firkanter er takterne: skraveret = fill, anden farve = en takt, der ligner en anden groove, nedtonet række = en gentagelse, der ikke kommer med.</dd>
+    </dl>
+  </section>
+
+  <section id="tips">
+    <h2 lang="en">Tips</h2>
+    <h2 lang="da">Gode råd</h2>
+    <ul lang="en">
+      <li>Tempo and time signature changes always start a new section, and each file gets the right tempo and time signature.</li>
+      <li>If the file has no time signature, DrumSplit guesses it from the drums (4/4, 3/4, 6/8, 7/8 …) and tells you.</li>
+      <li>A drum part recorded without a click (or at a different tempo than the file says) cannot be split precisely. You will see a warning when few hits sit on the bar grid.</li>
+      <li>The names are guesses from where a groove sits in the song, how often it comes back and how hard it is played (crash, ride, kick). Fix them in the name fields; the file names follow.</li>
+      <li>Each section is moved to bar 1 in its own file, so you can drag it straight into a new project.</li>
+    </ul>
+    <ul lang="da">
+      <li>Skift i tempo og taktart starter altid en ny sektion, og hver fil får det rigtige tempo og den rigtige taktart.</li>
+      <li>Har filen ingen taktart, gætter DrumSplit den ud fra trommerne (4/4, 3/4, 6/8, 7/8 …) og siger det.</li>
+      <li>Et trommespor indspillet uden klik (eller i et andet tempo end filens) kan ikke deles præcist. Du får en advarsel, når få slag ligger på takt-gitteret.</li>
+      <li>Navnene er gæt ud fra hvor en groove ligger i sangen, hvor tit den kommer igen, og hvor kraftigt der spilles (crash, ride, stortromme). Ret dem i navnefelterne; filnavnene følger med.</li>
+      <li>Hver sektion flyttes til takt 1 i sin egen fil, så du kan trække den direkte ind i et nyt projekt.</li>
+    </ul>
+  </section>
+<!--/tool-->
+
+<!--tool:drumhumanize-->
+  <section id="start">
+    <h2 lang="en">Quick start</h2>
+    <h2 lang="da">Kom i gang</h2>
+    <ol lang="en">
+      <li>Export your drum track as a MIDI file. In Cubase: select the drum track, then <b>File → Export → MIDI File</b>.</li>
+      <li>Drop the file on DrumHumanize, or click <b>Choose MIDI file</b>.</li>
+      <li>Look at <b>Before and after</b> and move the sliders until it feels right. The view updates at once.</li>
+      <li>Click <b>Save humanized MIDI file</b>. You get a new file; your original is not touched.</li>
+      <li>Drag the new file into your project at bar 1 and mute the old track.</li>
+    </ol>
+    <ol lang="da">
+      <li>Eksportér dit trommespor som MIDI-fil. I Cubase: vælg trommesporet, og så <b>File → Export → MIDI File</b>.</li>
+      <li>Træk filen ind i DrumHumanize, eller klik <b>Vælg MIDI-fil</b>.</li>
+      <li>Se på <b>Før og efter</b>, og flyt skyderne, til det føles rigtigt. Visningen opdateres med det samme.</li>
+      <li>Klik <b>Gem humaniseret MIDI-fil</b>. Du får en ny fil; din originale fil røres ikke.</li>
+      <li>Træk den nye fil ind i dit projekt på takt 1, og mute det gamle spor.</li>
+    </ol>
+    <p class="note" lang="en">Only the velocity of the drum hits changes. Tempo, time signature, controllers, hi-hat pedal and other tracks stay exactly as they were.</p>
+    <p class="note" lang="da">Kun velocity på trommeslagene ændres. Tempo, taktart, controllere, hihat-pedal og andre spor er præcis som før.</p>
+  </section>
+
+  <section id="controls">
+    <h2 lang="en">The controls</h2>
+    <h2 lang="da">Knapperne</h2>
+    <h3 lang="en">Per drum group (kick, snare, hi-hat, toms, cymbals, percussion)</h3>
+    <h3 lang="da">For hver trommegruppe (stortromme, lilletromme, hihat, tam-tams, bækkener, percussion)</h3>
+    <dl lang="en">
+      <dt>Variation</dt><dd>How much the velocity varies from hit to hit. 0 % = all alike. There is also a slow wave over a few bars, so the energy breathes.</dd>
+      <dt>Level</dt><dd>Makes the whole group softer compared to the others, e.g. hi-hat at 85 %.</dd>
+    </dl>
+    <dl lang="da">
+      <dt>Variation</dt><dd>Hvor meget anslaget varierer fra slag til slag. 0 % = helt ens. Der er også en langsom bølge over et par takter, så energien ånder.</dd>
+      <dt>Niveau</dt><dd>Gør hele gruppen svagere i forhold til de andre, fx hihat på 85 %.</dd>
+    </dl>
+    <h3 lang="en">Playing style</h3>
+    <h3 lang="da">Spillestil</h3>
+    <dl lang="en">
+      <dt>Fast hits</dt><dd>A hit that comes shortly after another on the same drum is played softer than a single hit. The first hit of a run stays full. A loud hit right after a quiet ghost note is not softened (that is the other hand).</dd>
+      <dt>Fast below</dt><dd>Hits closer together than this count as fast. Full effect at about a third of this time.</dd>
+      <dt>Weak hand</dt><dd>In fast runs (rolls, fills, 16ths) every second hit is a little softer.</dd>
+      <dt>Beat accent</dt><dd>Beats strongest, 8ths a little softer, 16ths softest. Mostly on hi-hat and cymbals. Works in 3/4, 6/8, 7/8 and so on.</dd>
+      <dt>Max / Min velocity</dt><dd>The highest velocity that comes out, and a floor nothing goes below. Quiet ghost notes are never turned up.</dd>
+      <dt>Leave quiet hits alone</dt><dd>Hits below the chosen velocity (default 100) are kept exactly as you programmed them, e.g. ghost notes.</dd>
+      <dt>Mishits</dt><dd>Now and then a hit is struck badly and comes out clearly softer. Only stick hits (snare, hi-hat, toms, cymbals), never kick, hi-hat pedal or quiet notes, and mostly in fast runs and on the weak hand. <i>How often</i> is per stick hit (1 per 143 by default); <i>How much softer</i> is about 35 %.</dd>
+      <dt>New variation</dt><dd>A new set of random variations. The same number with the same settings always gives exactly the same result.</dd>
+      <dt>Before and after</dt><dd>One row per drum group: the coloured bar is the new velocity, the light line the original, a ring marks a mishit. Choose which bars to show.</dd>
+    </dl>
+    <dl lang="da">
+      <dt>Hurtige slag</dt><dd>Et slag kort efter et andet på samme tromme spilles svagere end et enkeltslag. Det første slag i en række er fuldt. Et kraftigt slag lige efter en stille ghost note dæmpes ikke (det spiller den anden hånd).</dd>
+      <dt>Hurtig under</dt><dd>Slag tættere end dette tæller som hurtige. Fuld effekt ved cirka en tredjedel af tiden.</dd>
+      <dt>Svag hånd</dt><dd>I hurtige rækker (hvirvler, fills, 16.-dele) er hvert andet slag lidt svagere.</dd>
+      <dt>Takt-accent</dt><dd>Taktslag stærkest, 8.-dele lidt svagere, 16.-dele svagest. Mest på hihat og bækkener. Virker i 3/4, 6/8, 7/8 osv.</dd>
+      <dt>Max / Min velocity</dt><dd>Det højeste anslag der kommer ud, og en bund som intet går under. Stille ghost notes skrues aldrig op.</dd>
+      <dt>Rør ikke lave slag</dt><dd>Slag under den valgte velocity (standard 100) bliver præcis som du har programmeret dem, fx ghost notes.</dd>
+      <dt>Fejlslag</dt><dd>En gang imellem rammes et slag dårligt og kommer ud tydeligt svagere. Kun slag med stikker (lilletromme, hihat, tam-tams, bækkener), aldrig stortromme, hihat-pedal eller stille slag, og oftest i hurtige rækker og med den svage hånd. <i>Hvor tit</i> er pr. slag med stikker (1 pr. 143 som standard); <i>Hvor meget svagere</i> er omkring 35 %.</dd>
+      <dt>Ny variation</dt><dd>Et nyt sæt tilfældige variationer. Samme nummer med samme indstillinger giver altid præcis samme resultat.</dd>
+      <dt>Før og efter</dt><dd>Én række pr. trommegruppe: den farvede søjle er den nye velocity, den lyse streg den originale, en ring markerer et fejlslag. Vælg hvilke takter der vises.</dd>
+    </dl>
+  </section>
+
+  <section id="tips">
+    <h2 lang="en">Tips</h2>
+    <h2 lang="da">Gode råd</h2>
+    <ul lang="en">
+      <li>Always humanize from your original track. Humanizing a file that is already humanized adds the effect on top.</li>
+      <li>If you change the drums later, change the original and humanize again with the same variation number: the hits you did not touch get the same velocity as before.</li>
+      <li>Works well together with DrumTime, in either order.</li>
+      <li>Your settings are remembered for next time.</li>
+    </ul>
+    <ul lang="da">
+      <li>Humanisér altid ud fra dit originale spor. En fil, der allerede er humaniseret, får ellers effekten lagt oven i.</li>
+      <li>Ændrer du trommerne senere, så ret i originalen og humanisér igen med samme variationsnummer: de slag, du ikke har rørt, får samme velocity som før.</li>
+      <li>Virker godt sammen med DrumTime, i begge rækkefølger.</li>
+      <li>Dine indstillinger huskes til næste gang.</li>
+    </ul>
+  </section>
+<!--/tool-->
+
+<!--tool:drumtime-->
+  <section id="start">
+    <h2 lang="en">Quick start</h2>
+    <h2 lang="da">Kom i gang</h2>
+    <ol lang="en">
+      <li>Export your quantized drum track as a MIDI file. In Cubase: select the drum track, then <b>File → Export → MIDI File</b>.</li>
+      <li>Drop the file on DrumTime, or click <b>Choose MIDI file</b>.</li>
+      <li>Look at <b>Before and after</b> (1 or 2 bars shows the moves best) and adjust the sliders.</li>
+      <li>Click <b>Save MIDI file with new timing</b>. You get a new file; your original is not touched.</li>
+      <li>Drag the new file into your project at bar 1 and mute the old track.</li>
+    </ol>
+    <ol lang="da">
+      <li>Eksportér dit kvantiserede trommespor som MIDI-fil. I Cubase: vælg trommesporet, og så <b>File → Export → MIDI File</b>.</li>
+      <li>Træk filen ind i DrumTime, eller klik <b>Vælg MIDI-fil</b>.</li>
+      <li>Se på <b>Før og efter</b> (1 eller 2 takter viser flytningerne bedst), og justér skyderne.</li>
+      <li>Klik <b>Gem MIDI-fil med ny timing</b>. Du får en ny fil; din originale fil røres ikke.</li>
+      <li>Træk den nye fil ind i dit projekt på takt 1, og mute det gamle spor.</li>
+    </ol>
+    <p class="note" lang="en">Only the position of the drum hits changes. Velocity, tempo, time signature, controllers and other tracks stay as they were. A note never ends after the next hit on the same drum has started, so nothing hangs.</p>
+    <p class="note" lang="da">Kun placeringen af trommeslagene ændres. Velocity, tempo, taktart, controllere og andre spor er som før. En node slutter aldrig efter, at næste slag på samme tromme er startet, så intet hænger.</p>
+  </section>
+
+  <section id="controls">
+    <h2 lang="en">The controls</h2>
+    <h2 lang="da">Knapperne</h2>
+    <dl lang="en">
+      <dt>Spread (per drum group)</dt><dd>How much the hits on that drum spread around the grid, in milliseconds (typical deviation). By default the kick is tightest (3 ms) and hi-hat loosest (6 ms).</dd>
+      <dt>Ahead of / behind the beat</dt><dd>Moves the whole track. Negative = the drummer sits a little ahead (pushing), positive = behind (laid back).</dd>
+      <dt>Drift over time</dt><dd>A slow wave over a few bars, so the time breathes instead of standing completely still.</dd>
+      <dt>Never more than</dt><dd>No hit moves more than this, whatever the other settings (default 40 ms).</dd>
+      <dt>New variation</dt><dd>A new set of random moves. The same number with the same settings always gives the same result.</dd>
+    </dl>
+    <dl lang="da">
+      <dt>Spredning (pr. trommegruppe)</dt><dd>Hvor meget slagene på den tromme spredes omkring gitteret, i millisekunder (typisk afvigelse). Som standard er stortrommen strammest (3 ms) og hihat løsest (6 ms).</dd>
+      <dt>Foran / bagved takten</dt><dd>Flytter hele sporet. Negativ = trommeslageren ligger lidt foran (presser), positiv = bagved (afslappet).</dd>
+      <dt>Vaklen over tid</dt><dd>En langsom bølge over et par takter, så tiden ånder i stedet for at stå helt stille.</dd>
+      <dt>Aldrig mere end</dt><dd>Intet slag flyttes mere end dette, uanset de andre indstillinger (standard 40 ms).</dd>
+      <dt>Ny variation</dt><dd>Et nyt sæt tilfældige flytninger. Samme nummer med samme indstillinger giver altid samme resultat.</dd>
+    </dl>
+    <h3 lang="en">Fast runs (blasts, double kick, rolls, fills)</h3>
+    <h3 lang="da">Hurtige rækker (blasts, dobbeltpedal, hvirvler, fills)</h3>
+    <dl lang="en">
+      <dt>Shape</dt><dd><i>Tight at first, looser later</i>: like tiring arms. <i>Loose at first, tighter later</i>: settles after a few hits. <i>Random all the way</i>: each run loose in its own way. <i>Tight all the way</i>: only a very small spread.</dd>
+      <dt>Looseness</dt><dd>How much the hits in a run can sway when they are loosest.</dd>
+      <dt>Changes over</dt><dd>How many hits into the run before it is fully loose (or fully tight).</dd>
+      <dt>Wave</dt><dd>0 % = every hit jumps randomly. 100 % = the hits glide smoothly back and forth, like a blast that starts to sway.</dd>
+      <dt>Fast below</dt><dd>Hits on the same drum closer together than this count as a fast run.</dd>
+      <dt>Before and after</dt><dd>The coloured bar is the new position, the grey line the original, and the short line at the bottom shows the move.</dd>
+    </dl>
+    <dl lang="da">
+      <dt>Forløb</dt><dd><i>Stram i starten, løsere til sidst</i>: som trætte arme. <i>Løs i starten, strammere til sidst</i>: falder på plads efter nogle slag. <i>Tilfældig hele vejen</i>: hver række løs på sin egen måde. <i>Stram hele vejen</i>: kun en meget lille spredning.</dd>
+      <dt>Løshed</dt><dd>Hvor meget slagene i en række kan svinge, når de er løsest.</dd>
+      <dt>Skifter over</dt><dd>Hvor mange slag inde i rækken, før den er helt løs (eller helt stram).</dd>
+      <dt>Bølge</dt><dd>0 % = hvert slag hopper tilfældigt. 100 % = slagene glider blødt frem og tilbage, som en blast der begynder at svinge.</dd>
+      <dt>Hurtig under</dt><dd>Slag på samme tromme tættere end dette tæller som en hurtig række.</dd>
+      <dt>Før og efter</dt><dd>Den farvede søjle er den nye placering, den grå streg den originale, og den korte streg forneden viser flytningen.</dd>
+    </dl>
+  </section>
+
+  <section id="tips">
+    <h2 lang="en">Tips</h2>
+    <h2 lang="da">Gode råd</h2>
+    <ul lang="en">
+      <li>Start from your original, quantized track. A file that has already been moved gets the move added on top.</li>
+      <li>A few milliseconds go a long way: 3 to 6 ms can be heard but hardly seen.</li>
+      <li>Works well together with DrumHumanize, in either order.</li>
+      <li>Your settings are remembered for next time.</li>
+    </ul>
+    <ul lang="da">
+      <li>Start fra dit originale, kvantiserede spor. En fil, der allerede er flyttet, får flytningen lagt oven i.</li>
+      <li>Få millisekunder gør meget: 3 til 6 ms kan høres, men næsten ikke ses.</li>
+      <li>Virker godt sammen med DrumHumanize, i begge rækkefølger.</li>
+      <li>Dine indstillinger huskes til næste gang.</li>
+    </ul>
+  </section>
+<!--/tool-->
+
+  <section id="drummap">
+    <h2 lang="en">Drum map</h2>
+    <h2 lang="da">Trommekort</h2>
+    <p lang="en">The tools need to know which drum each MIDI note plays. <b>Automatic</b> looks at the notes and chooses between <b>General MIDI</b> (36 kick, 38 snare, 42 hi-hat …) and the default map of <b>Superior Drummer 3</b>, which also uses notes like 22 and 26 for hi-hat and 83–118 for cymbals.</p>
+    <p lang="da">Værktøjerne skal vide, hvilken tromme hver MIDI-node spiller. <b>Automatisk</b> ser på noderne og vælger mellem <b>General MIDI</b> (36 stortromme, 38 lilletromme, 42 hihat …) og standardkortet i <b>Superior Drummer 3</b>, som også bruger noder som 22 og 26 til hihat og 83–118 til bækkener.</p>
+    <p lang="en">Open <b>Notes in the track</b> to see every note in your file, its name and which drum it counts as. If you changed your map in your drum software, choose the right group for a note there. Your changes are remembered.</p>
+    <p lang="da">Åbn <b>Noder i sporet</b> for at se hver node i din fil, dens navn og hvilken tromme den tæller som. Har du ændret kortet i dit trommeprogram, vælger du den rigtige gruppe for noden der. Dine rettelser huskes.</p>
+    <p class="note" lang="en">The Superior Drummer 3 map is based on a public list of its default mapping. Superior Drummer is a trademark of Toontrack; these tools are not made or endorsed by Toontrack.</p>
+    <p class="note" lang="da">Superior Drummer 3-kortet bygger på en offentlig liste over standardkortet. Superior Drummer er et varemærke tilhørende Toontrack; værktøjerne er ikke lavet eller godkendt af Toontrack.</p>
+  </section>
+
+  <section id="windows">
+    <h2 lang="en">The Windows program</h2>
+    <h2 lang="da">Windows-programmet</h2>
+    <ul lang="en">
+      <li>Nothing to install. Extract the zip file and start <code>{{TOOL}}.exe</code>. Keep <code>WebView2Loader.dll</code> in the same folder: it is a small file from Microsoft that the program uses to show its window.</li>
+      <li>Needs Windows 10 or 11 (64-bit) with Microsoft Edge WebView2, which comes with Windows. If it is missing, the program tells you where to get it.</li>
+      <li>The first time, Windows may show <i>“Windows protected your PC”</i> because the program is not signed with a paid certificate. Click <b>More info</b> and <b>Run anyway</b>.</li>
+      <li>Saving uses the normal Windows <i>Save As</i> window, and the program remembers the last folder.</li>
+      <li>Settings are stored in <code>%APPDATA%\{{TOOL}}\settings.json</code>. To remove the program completely, delete its folder, <code>%APPDATA%\{{TOOL}}</code> and <code>%LOCALAPPDATA%\{{TOOL}}</code>.</li>
+      <li><b>Download it safely.</b> Only get the program from the official pages<span class="officialLinks"></span>. A copy from anywhere else may have been changed by someone, for example with a virus added. I take no responsibility for copies that come from other places.</li>
+    </ul>
+    <ul lang="da">
+      <li>Intet at installere. Pak zip-filen ud, og start <code>{{TOOL}}.exe</code>. Lad <code>WebView2Loader.dll</code> ligge i samme mappe: det er en lille fil fra Microsoft, som programmet bruger til at vise sit vindue.</li>
+      <li>Kræver Windows 10 eller 11 (64-bit) med Microsoft Edge WebView2, som følger med Windows. Mangler den, fortæller programmet, hvor du henter den.</li>
+      <li>Første gang viser Windows måske <i>“Windows beskyttede din pc”</i>, fordi programmet ikke er signeret med et købt certifikat. Klik <b>Flere oplysninger</b> og <b>Kør alligevel</b>.</li>
+      <li>Der gemmes med Windows' almindelige <i>Gem som</i>-vindue, og programmet husker den sidste mappe.</li>
+      <li>Indstillingerne ligger i <code>%APPDATA%\{{TOOL}}\settings.json</code>. Vil du fjerne programmet helt, slet dets mappe, <code>%APPDATA%\{{TOOL}}</code> og <code>%LOCALAPPDATA%\{{TOOL}}</code>.</li>
+      <li><b>Hent det sikkert.</b> Hent kun programmet fra de officielle sider<span class="officialLinks"></span>. En kopi fra et andet sted kan være ændret af nogen, fx med en virus. Jeg tager intet ansvar for kopier, der kommer andre steder fra.</li>
+    </ul>
+  </section>
+
+  <section id="trouble">
+    <h2 lang="en">Troubleshooting</h2>
+    <h2 lang="da">Fejlfinding</h2>
+    <dl lang="en">
+      <dt>“This is not a MIDI file”</dt><dd>The file is not a standard MIDI file (.mid). Export it again from your DAW as a MIDI file.</dd>
+      <dt>“Uses SMPTE time”</dt><dd>The file counts time in frames instead of beats. Export it with bars and beats.</dd>
+      <dt>Wrong drums recognised</dt><dd>Choose the right drum map, or fix single notes under <b>Notes in the track</b>.</dd>
+      <dt>Wrong track</dt><dd>Choose the drum track under <b>Track with drums</b>.</dd>
+      <dt>Odd milliseconds or tempo</dt><dd>If the file has no tempo, 120 BPM is assumed. Export the file with the project's tempo track.</dd>
+      <dt>“WebView2Loader.dll is missing”</dt><dd>Extract the whole zip file and start the program from the extracted folder.</dd>
+      <dt>“Needs Microsoft Edge WebView2”</dt><dd>Install the WebView2 Runtime (Evergreen Bootstrapper) from developer.microsoft.com/microsoft-edge/webview2.</dd>
+      <dt>A virus scanner complains</dt><dd>A few scanners that guess from patterns flag small unsigned programs. The program only reads the MIDI file you choose and writes the file you save.</dd>
+    </dl>
+    <dl lang="da">
+      <dt>“Det er ikke en MIDI-fil”</dt><dd>Filen er ikke en almindelig MIDI-fil (.mid). Eksportér den igen fra dit DAW som MIDI-fil.</dd>
+      <dt>“Bruger SMPTE-tid”</dt><dd>Filen tæller tiden i billeder i stedet for slag. Eksportér den med takter og slag.</dd>
+      <dt>Forkerte trommer genkendt</dt><dd>Vælg det rigtige trommekort, eller ret enkelte noder under <b>Noder i sporet</b>.</dd>
+      <dt>Forkert spor</dt><dd>Vælg trommesporet under <b>Spor med trommer</b>.</dd>
+      <dt>Mærkelige millisekunder eller tempo</dt><dd>Har filen intet tempo, regnes med 120 BPM. Eksportér filen med projektets tempospor.</dd>
+      <dt>“WebView2Loader.dll mangler”</dt><dd>Pak hele zip-filen ud, og start programmet fra den udpakkede mappe.</dd>
+      <dt>“Skal bruge Microsoft Edge WebView2”</dt><dd>Installer WebView2 Runtime (Evergreen Bootstrapper) fra developer.microsoft.com/microsoft-edge/webview2.</dd>
+      <dt>En virusscanner brokker sig</dt><dd>Nogle få scannere, der gætter ud fra mønstre, melder på små usignerede programmer. Programmet læser kun den MIDI-fil, du vælger, og skriver den fil, du gemmer.</dd>
+    </dl>
+  </section>
+
+  <section id="privacy">
+    <h2 lang="en">Privacy</h2>
+    <h2 lang="da">Privatliv</h2>
+    <p lang="en">Everything happens on your own computer. Your MIDI files are never uploaded or sent anywhere, the pages load nothing from other servers, and there is no tracking. Settings are kept only on your computer.</p>
+    <p lang="da">Alt foregår på din egen computer. Dine MIDI-filer bliver aldrig sendt nogen steder hen, siderne henter intet fra andre servere, og der er ingen sporing. Indstillinger gemmes kun på din computer.</p>
+  </section>
+
+  <section id="support" hidden>
+    <h2 lang="en">Support the project</h2>
+    <h2 lang="da">Støt projektet</h2>
+    <p lang="en">The online tools are free. If they save you time, a small donation is a great thank-you and keeps them going.</p>
+    <p lang="da">Online-værktøjerne er gratis. Sparer de dig tid, er en lille donation en dejlig tak, der holder dem i gang.</p>
+    <p lang="en">Got the Windows program from a friend or somewhere else without paying? That's fine, I'm glad you're using it. If it saves you time, I'd be very grateful for a coffee.</p>
+    <p lang="da">Har du fået Windows-programmet af en ven eller et andet sted uden at betale? Det er helt i orden, jeg er glad for, at du bruger det. Sparer det dig tid, bliver jeg rigtig glad for en kop kaffe.</p>
+    <p id="supportLinks"></p>
+  </section>
+
+  <section id="license">
+    <h2 lang="en">Licence and credits</h2>
+    <h2 lang="da">Licens og tak</h2>
+    <p>Required Notice: Copyright {{YEAR}} {{LEGAL}}</p>
+    <p lang="en">{{TOOL}} is licensed under the <b>PolyForm Shield License 1.0.0</b>. In short: you may use it for anything, including paid music work, and you may change it and share it, but you may not use it to make or sell a product that competes with it. The full terms are below and in <code>LICENSE.txt</code>.</p>
+    <p lang="da">{{TOOL}} er udgivet under <b>PolyForm Shield License 1.0.0</b>. Kort sagt: du må bruge det til alt, også betalt musikarbejde, og du må ændre og dele det, men du må ikke bruge det til at lave eller sælge et produkt, der konkurrerer med det. De fulde vilkår står nedenfor og i <code>LICENSE.txt</code>.</p>
+    <details><summary><span lang="en">PolyForm Shield License 1.0.0 (full text)</span><span lang="da">PolyForm Shield License 1.0.0 (fuld tekst)</span></summary>
+<pre class="lic">{{LICENSE_TEXT}}</pre></details>
+    <h3 lang="en">Built with</h3>
+    <h3 lang="da">Bygget med</h3>
+    <ul lang="en"><li>The Windows program uses Microsoft Edge WebView2 (WebView2Loader.dll, © Microsoft Corporation, BSD licence), go-webview2 (© John Chadwick and others, MIT licence) and the Go programming language (© The Go Authors, BSD licence). Full texts in <code>THIRD-PARTY-NOTICES.txt</code>.</li></ul>
+    <ul lang="da"><li>Windows-programmet bruger Microsoft Edge WebView2 (WebView2Loader.dll, © Microsoft Corporation, BSD-licens), go-webview2 (© John Chadwick m.fl., MIT-licens) og programmeringssproget Go (© The Go Authors, BSD-licens). Fulde tekster i <code>THIRD-PARTY-NOTICES.txt</code>.</li></ul>
+    <details><summary><span lang="en">Third-party notices (full text)</span><span lang="da">Tredjepartslicenser (fuld tekst)</span></summary>
+<pre class="lic">{{THIRD_PARTY_TEXT}}</pre></details>
+    <p lang="en">Made by a musician who needed these tools himself, with help from AI.</p>
+    <p lang="da">Lavet af en musiker, der selv manglede værktøjerne, med hjælp fra AI.</p>
+  </section>
+  </main>
+
+  <footer><p>© {{YEAR}} {{AUTHOR}} · {{TOOL}}</p></footer>
+</div>
+<script>
+/*__LINKS__*/
+</script>
+<script>
+(function () {
+  "use strict";
+  // Language: #en / #da in the address, otherwise the saved choice, otherwise English
+  var root = document.documentElement;
+  function setLang(l, save) {
+    l = l === "da" ? "da" : "en";
+    root.setAttribute("data-show", l); root.lang = l;
+    document.querySelectorAll(".lang button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.lang === l)); });
+    if (save) { try { localStorage.setItem("drumtools.lang", l); } catch (e) {} }
+  }
+  var h = (location.hash || "").slice(1), start = "en";
+  try { var s = localStorage.getItem("drumtools.lang"); if (s === "da" || s === "en") start = s; } catch (e) {}
+  if (h === "da" || h === "en") start = h;
+  setLang(start, false);
+  document.querySelectorAll(".lang button").forEach(function (b) { b.addEventListener("click", function () { setLang(b.dataset.lang, true); }); });
+  if (h && h !== "da" && h !== "en") { var t = document.getElementById(h); if (t) setTimeout(function () { t.scrollIntoView(); }, 0); }
+
+  // Support links, when they are filled in
+  var L = window.DRUMTOOLS_LINKS || {}, parts = [];
+  function a(href, en, da) { return '<a href="' + href.replace(/"/g, "&quot;") + '" target="_blank" rel="noopener"><span lang="en">' + en + '</span><span lang="da">' + da + "</span></a>"; }
+  if (L.donate) parts.push(a(L.donate, "Buy me a coffee", "Giv en kop kaffe"));
+  if (L.buy) parts.push(a(L.buy, "Get the Windows programs", "Hent Windows-programmerne"));
+  if (L.website) parts.push(a(L.website, "Free online versions", "Gratis online-versioner"));
+  if (L.source) parts.push(a(L.source, "Source code", "Kildekode"));
+  // Official download places for the Windows programs
+  var off = [];
+  if (L.buy || L.donate) off.push(a(L.buy || L.donate, "my Buy Me a Coffee page", "min Buy Me a Coffee-side"));
+  if (L.source) off.push(a(L.source, "GitHub", "GitHub"));
+  if (off.length) document.querySelectorAll(".officialLinks").forEach(function (s) {
+    s.innerHTML = ": " + off.join(s.closest("[lang=da]") ? " og " : " and ");
+  });
+  if (parts.length) {
+    document.getElementById("supportLinks").innerHTML = parts.join(" · ");
+    document.getElementById("support").hidden = false;
+    document.getElementById("tocSupport").hidden = false;
+  }
+})();
+</script>
+</body>
+</html>

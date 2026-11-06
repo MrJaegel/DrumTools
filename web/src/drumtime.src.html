@@ -1,0 +1,683 @@
+<title>DrumTime</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: one column — load bar, readout, settings, before/after lanes, note map */
+:root {
+  --bg: #eef0f3;
+  --panel: #fbfbfc;
+  --ink: #15181d;
+  --muted: #5d6573;
+  --line: #d5d9e0;
+  --cell: #e3e6eb;
+  --warn-bg: #fff4d6;
+  --warn-ink: #6b4a00;
+  --err-bg: #fde4e1;
+  --err-ink: #8a1f14;
+  --g-a: #2f68c9; --g-b: #d07a1f; --g-c: #23895c; --g-d: #b23f8f;
+  --g-e: #6c55c9; --g-f: #b8402f; --g-g: #1d8ea3; --g-h: #7f7424;
+  /* only the computer's own fonts: nothing is loaded from other servers */
+  --font-display: "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "Cascadia Mono", Consolas, ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111317; --panel: #1a1d23; --ink: #e8eaee; --muted: #9aa2b0; --line: #2d323b; --cell: #262a32;
+    --warn-bg: #3a2f12; --warn-ink: #f3d68a; --err-bg: #3d1a17; --err-ink: #f6b4aa;
+    --g-a: #6f9cf0; --g-b: #f0a050; --g-c: #4fc08b; --g-d: #e277c0;
+    --g-e: #a08cf2; --g-f: #ef7a66; --g-g: #4cc3d6; --g-h: #c9b95a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111317; --panel: #1a1d23; --ink: #e8eaee; --muted: #9aa2b0; --line: #2d323b; --cell: #262a32;
+  --warn-bg: #3a2f12; --warn-ink: #f3d68a; --err-bg: #3d1a17; --err-ink: #f6b4aa;
+  --g-a: #6f9cf0; --g-b: #f0a050; --g-c: #4fc08b; --g-d: #e277c0;
+  --g-e: #a08cf2; --g-f: #ef7a66; --g-g: #4cc3d6; --g-h: #c9b95a;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font: 15px/1.5 var(--font-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 56px;
+}
+main { max-width: 1040px; margin: 0 auto; display: grid; gap: 22px; }
+h1 { font: 700 clamp(30px, 5vw, 42px)/1.05 var(--font-display); letter-spacing: -0.02em; margin: 0; text-wrap: balance; }
+h2 { font: 600 13px/1.2 var(--font-body); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 12px; }
+.lead { margin: 8px 0 0; max-width: 62ch; color: var(--muted); }
+.mono, .num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; min-width: 0; }
+
+/* Load bar */
+.drop { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; border: 1.5px dashed var(--line); border-radius: 10px; padding: 16px 18px; background: var(--panel); transition: border-color .15s, background .15s; }
+.drop.over { border-color: var(--ink); background: var(--cell); }
+.drop .file { flex: 1 1 260px; min-width: 0; }
+.drop .file strong { display: block; font-weight: 600; overflow-wrap: anywhere; }
+.drop .file span { color: var(--muted); font-size: 13.5px; }
+.badge { display: inline-block; font: 500 11.5px/1 var(--font-body); text-transform: uppercase; letter-spacing: .07em; padding: 4px 7px; border-radius: 4px; background: var(--warn-bg); color: var(--warn-ink); vertical-align: 2px; margin-left: 6px; }
+button, .btn { font: 600 14.5px/1 var(--font-body); border-radius: 7px; padding: 11px 16px; cursor: pointer; border: 1px solid var(--line); background: var(--panel); color: var(--ink); }
+button:hover { border-color: var(--muted); }
+button.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+button.primary:hover { opacity: .88; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--g-a); outline-offset: 2px; }
+button:disabled { opacity: .45; cursor: default; }
+
+.notice { border-radius: 8px; padding: 10px 14px; font-size: 14px; background: var(--warn-bg); color: var(--warn-ink); }
+.notice.error { background: var(--err-bg); color: var(--err-ink); }
+#notices { display: grid; gap: 8px; }
+#notices:empty { display: none; }
+
+/* Readout */
+.readout { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.stat { background: var(--panel); padding: 14px 16px; min-width: 0; }
+.stat .k { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.stat .v { font: 500 24px/1.2 var(--font-mono); font-variant-numeric: tabular-nums; margin-top: 4px; overflow-wrap: anywhere; }
+.stat .s { font-size: 13px; color: var(--muted); }
+@media (max-width: 640px) { .readout { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.controls { display: flex; flex-wrap: wrap; align-items: end; gap: 14px 24px; }
+.field { display: grid; gap: 5px; font-size: 13px; color: var(--muted); min-width: 0; }
+.field select { font: 14.5px var(--font-body); padding: 8px 10px; border-radius: 7px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); max-width: 100%; }
+.slider { display: flex; align-items: center; gap: 10px; color: var(--ink); }
+.slider input { width: 180px; max-width: 46vw; accent-color: var(--ink); }
+.slider small { color: var(--muted); font-size: 12.5px; }
+.controls .go { margin-left: auto; display: grid; gap: 6px; justify-items: end; }
+.controls .go small { color: var(--muted); font-size: 12.5px; text-align: right; }
+@media (max-width: 640px) { .controls .go { margin-left: 0; justify-items: start; } .controls .go small { text-align: left; } }
+
+/* Arranger lane */
+.lane { display: flex; gap: 2px; height: 46px; }
+.lane .blk { flex: var(--n) 1 0; min-width: 6px; border-radius: 4px; background: var(--c); color: #fff; padding: 5px 7px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font: 600 13px/1.15 var(--font-body); cursor: pointer; border: 0; text-align: left; }
+.lane .blk small { display: block; font: 400 11px/1.3 var(--font-mono); opacity: .85; }
+.lane .blk.sel { outline: 2px solid var(--ink); outline-offset: 1px; }
+:root[data-theme="dark"] .lane .blk { color: #111317; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .lane .blk { color: #111317; } }
+.ruler { display: flex; gap: 2px; margin-top: 4px; }
+.ruler span { flex: var(--n) 1 0; min-width: 6px; font: 11px var(--font-mono); color: var(--muted); overflow: hidden; white-space: nowrap; }
+
+/* Grooves */
+.grooves { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 12px; }
+.groove { border: 1px solid var(--line); border-radius: 8px; padding: 12px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+.groove header { display: flex; align-items: center; gap: 10px; }
+.chip { flex: none; width: 26px; height: 26px; border-radius: 5px; background: var(--c); color: var(--panel); display: grid; place-items: center; font: 700 14px var(--font-mono); }
+.groove input { flex: 1; min-width: 0; font: 600 15px var(--font-body); padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink); }
+.groove .meta { font-size: 12.5px; color: var(--muted); }
+.groove .why { font-size: 12.5px; color: var(--muted); font-style: italic; }
+.check { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink); padding-bottom: 8px; cursor: pointer; }
+.check input { width: 16px; height: 16px; accent-color: var(--ink); }
+.pat { overflow-x: auto; }
+.pat table { border-collapse: separate; border-spacing: 2px; }
+.pat th { font: 500 11px var(--font-body); color: var(--muted); text-align: right; padding-right: 6px; white-space: nowrap; }
+.pat td { width: 11px; height: 11px; min-width: 11px; border-radius: 2px; background: var(--cell); padding: 0; }
+.pat td.beat { box-shadow: inset 2px 0 0 var(--line); }
+.pat td.on { background: var(--c); }
+
+/* Sections */
+.sections { display: grid; gap: 0; }
+.row { display: grid; grid-template-columns: 30px minmax(120px, 1.1fr) 92px 64px 74px 60px minmax(0, 2fr); gap: 12px; align-items: center; padding: 10px 4px; border-top: 1px solid var(--line); font-size: 14px; }
+.row.head { border-top: 0; font-size: 11.5px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); padding-block: 0 8px; }
+.row.sel { background: var(--cell); border-radius: 6px; }
+.row .name { display: flex; align-items: center; gap: 8px; font-weight: 600; min-width: 0; }
+.row .name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row .name .chip { width: 20px; height: 20px; font-size: 11.5px; border-radius: 4px; }
+.row .fills { color: var(--muted); font-size: 12.5px; font-weight: 400; }
+.cells { display: flex; flex-wrap: wrap; gap: 3px; min-width: 0; }
+.cells i { width: 13px; height: 13px; border-radius: 2px; background: var(--c); display: block; }
+.cells i.fill { background: repeating-linear-gradient(135deg, var(--c) 0 2px, transparent 2px 4.5px); box-shadow: inset 0 0 0 1.5px var(--c); }
+.row:not(.head) { cursor: pointer; }
+.row.dup > :not(.cells) { opacity: .5; }
+.row.dup .cells { opacity: .35; }
+.row .rep { font-size: 12px; font-weight: 500; color: var(--muted); }
+.lane .blk.dup { opacity: .35; }
+.go .btns { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+@media (max-width: 640px) { .go .btns { justify-content: flex-start; } }
+/* Humanizing */
+.hum-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 22px; margin-bottom: 6px; }
+.hum-head h2 { margin: 0; }
+.hum-head .check { padding: 0; }
+.hum-seed { margin-left: auto; display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 13.5px; }
+.hum-seed button { padding: 8px 12px; font-size: 13.5px; }
+.hum-status { margin: 0 0 14px; font-size: 13.5px; color: var(--muted); max-width: 80ch; }
+.hum-body.off { opacity: .4; pointer-events: none; }
+.hum-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 14px 32px; }
+@media (max-width: 760px) { .hum-grid { grid-template-columns: minmax(0, 1fr); } .hum-seed { margin-left: 0; } }
+.hum-table { display: grid; grid-template-columns: minmax(96px, auto) minmax(0, 1fr) minmax(0, 1fr); gap: 6px 16px; align-items: center; }
+.hum-table .th { font-size: 11.5px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); }
+.hum-table .gname { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; }
+.hum-table .gname i { width: 10px; height: 10px; border-radius: 2px; background: var(--c); }
+.hum-style { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 20px; align-content: start; }
+.rng { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 8px; min-width: 0; }
+.rng label { grid-column: 1 / -1; font-size: 12.5px; color: var(--muted); }
+.rng input { width: 100%; min-width: 0; accent-color: var(--c, var(--ink)); }
+.rng output { white-space: nowrap; min-width: 52px; font: 13px var(--font-mono); font-variant-numeric: tabular-nums; text-align: right; }
+.hum-table .rng label { display: none; }
+.mishit { grid-column: 1 / -1; display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr); gap: 10px 20px; align-items: end; padding-top: 12px; border-top: 1px solid var(--line); }
+.mishit .check { padding-bottom: 6px; }
+.mishit.off .rng { opacity: .4; pointer-events: none; }
+.mishit small { grid-column: 1 / -1; color: var(--muted); font-size: 12.5px; }
+@media (max-width: 760px) { .mishit { grid-template-columns: minmax(0, 1fr); } }
+.hum-prev { margin-top: 18px; }
+.hum-prev-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 16px; font-size: 13px; margin-bottom: 6px; }
+.hum-prev-head span:last-child { color: var(--muted); }
+#humCanvas { display: block; width: 100%; height: 180px; border-radius: 6px; background: var(--bg); }
+.hum-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-top: 16px; }
+.hum-actions small { color: var(--muted); font-size: 12.5px; }
+/* Note map */
+details.notes > summary { cursor: pointer; list-style: none; display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; }
+details.notes > summary::-webkit-details-marker { display: none; }
+details.notes > summary h2 { margin: 0; }
+details.notes > summary h2::before { content: "▸ "; }
+details.notes[open] > summary h2::before { content: "▾ "; }
+details.notes > summary span { color: var(--muted); font-size: 13px; }
+.notes-help { color: var(--muted); font-size: 13px; margin: 12px 0; max-width: 80ch; }
+.note-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr)); gap: 4px 24px; }
+.note-row { display: grid; grid-template-columns: 34px minmax(0, 1fr) 44px 128px; align-items: center; gap: 8px; padding: 4px 0; border-top: 1px solid var(--line); font-size: 13.5px; }
+.note-row .n { font-family: var(--font-mono); color: var(--muted); }
+.note-row .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.note-row .cnt { font-family: var(--font-mono); font-size: 12px; color: var(--muted); text-align: right; }
+.note-row select { font: 13px var(--font-body); padding: 4px 6px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); min-width: 0; }
+.note-row.changed select { border-color: var(--ink); }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); margin-top: 12px; align-items: center; }
+.legend i { display: inline-block; width: 13px; height: 13px; border-radius: 2px; vertical-align: -2px; margin-right: 6px; background: var(--muted); }
+.legend i.fill { background: repeating-linear-gradient(135deg, var(--muted) 0 2px, transparent 2px 4.5px); box-shadow: inset 0 0 0 1.5px var(--muted); }
+@media (max-width: 760px) {
+  .row { grid-template-columns: 26px minmax(0, 1fr) auto; row-gap: 6px; }
+  .row.head { display: none; }
+  .row .c-sig, .row .c-bpm { display: none; }
+  .row .c-start { text-align: right; }
+  .row .c-bars { grid-column: 2; font-size: 13px; color: var(--muted); }
+  .row .cells { grid-column: 2 / -1; }
+}
+footer { color: var(--muted); font-size: 13px; max-width: 70ch; }
+footer p { margin: 0 0 6px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+<style>
+.view-ctl { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; margin: 10px 0 8px; font-size: 13px; color: var(--muted); }
+.view-ctl input[type=range] { width: 260px; max-width: 60vw; accent-color: var(--ink); }
+.view-ctl select { font: 13.5px var(--font-body); padding: 5px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); }
+#humCanvas { height: 220px; }
+.prev-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 16px; }
+.prev-head h2 { margin: 0; }
+.prev-head span { font-size: 13px; color: var(--muted); }
+.hum-table.t2 { grid-template-columns: minmax(96px, auto) minmax(0, 1fr); }
+.fastbox { grid-column: 1 / -1; display: grid; gap: 12px; padding-top: 14px; border-top: 1px solid var(--line); }
+.fastbox h3 { margin: 0; font: 600 14.5px var(--font-body); }
+.fastbox h3 span { font-weight: 400; color: var(--muted); font-size: 13px; margin-left: 8px; }
+.fastbox .hum-style { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.fastbox .field select { font: 14px var(--font-body); padding: 7px 10px; border-radius: 7px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); max-width: 100%; }
+.fast-row { display: flex; flex-wrap: wrap; gap: 10px 24px; align-items: end; }
+.fastbox small { color: var(--muted); font-size: 12.5px; }
+@media (max-width: 760px) { .fastbox .hum-style { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+header.top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 12px 24px; }
+header.top > div:first-child { min-width: 0; flex: 1 1 420px; }
+.topctl { display: flex; align-items: center; gap: 10px; flex: none; }
+.helpbtn { display: inline-block; padding: 7px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); font: 600 13px var(--font-body); text-decoration: none; }
+.helpbtn:hover { border-color: var(--muted); }
+footer .links a, footer .copy a, .thanks a { color: var(--ink); }
+.thanks { color: var(--muted); font-size: 12.5px; }
+.lang { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--panel); flex: none; }
+.lang button { border: 0; border-radius: 0; padding: 7px 12px; font: 600 13px var(--font-body); background: transparent; color: var(--muted); }
+.lang button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+</style>
+
+<main>
+  <header class="top">
+    <div>
+      <h1>DrumTime</h1>
+      <p class="lead">Træk et kvantiseret MIDI-trommespor ind, og få det tilbage med slag, der ikke ligger helt på gitteret: lidt spredning pr. tromme, en tid der ånder, og hurtige rækker der kan strammes eller løsnes undervejs. Kun placeringen ændres, velocity er som før.</p>
+    </div>
+    <div class="topctl"><a class="helpbtn" id="helpLink" href="drumtime-help.html" target="_blank" rel="noopener">Hjælp</a><div class="lang" role="group" aria-label="Sprog"><button data-lang="da" aria-pressed="true">Dansk</button><button data-lang="en" aria-pressed="false">English</button></div></div>
+  </header>
+
+  <div class="drop" id="drop">
+    <div class="file">
+      <strong id="fileName">Eksempelsang<span class="badge">Eksempel</span></strong>
+      <span id="fileInfo"></span>
+    </div>
+    <label class="btn primary" for="fileInput" id="pickBtn" style="background:var(--ink);color:var(--bg);border-color:var(--ink)">Vælg MIDI-fil</label>
+    <input type="file" id="fileInput" accept=".mid,.midi,audio/midi,audio/x-midi" hidden>
+  </div>
+
+  <div id="notices" role="status" aria-live="polite"></div>
+
+  <section class="readout" id="readout" aria-label="Oversigt"></section>
+
+  <section class="panel controls">
+    <div class="field" id="trackField" hidden>
+      <label for="trackSel">Spor med trommer</label>
+      <select id="trackSel"></select>
+    </div>
+    <div class="field">
+      <label for="mapSel">Trommekort</label>
+      <select id="mapSel">
+        <option value="auto" selected>Automatisk</option>
+        <option value="gm">General MIDI</option>
+        <option value="sd3">Superior Drummer 3</option>
+      </select>
+    </div>
+    <div class="go">
+      <div class="btns"><button class="primary" id="saveBtn">Gem MIDI-fil med ny timing</button></div>
+      <small class="thanks" id="thanks" hidden></small>
+      <small id="saveNote">Gemmes som en ny fil. Din originale fil røres ikke.</small>
+    </div>
+  </section>
+
+  <section class="panel" id="timePanel">
+    <div class="hum-head">
+      <h2>Timing</h2>
+      <span class="hum-seed"><span id="seedText">Variation nr. 1</span><button id="seedBtn" title="Et nyt sæt tilfældige flytninger. Samme nummer giver altid samme resultat.">Ny variation</button></span>
+    </div>
+    <p class="hum-status" id="humStatus"></p>
+    <div class="hum-grid">
+      <div class="hum-table t2" id="timeGroups"></div>
+      <div class="hum-style" id="timeStyle"></div>
+      <div class="fastbox">
+        <h3>Hurtige rækker<span>blasts, dobbeltpedal, hvirvler og fills</span></h3>
+        <div class="fast-row">
+          <div class="field"><label for="ht-fastMode">Forløb</label>
+            <select id="ht-fastMode">
+              <option value="tightLoose">Stram i starten, løsere til sidst</option>
+              <option value="looseTight">Løs i starten, strammere til sidst</option>
+              <option value="random">Tilfældig hele vejen</option>
+              <option value="tight">Stram hele vejen</option>
+            </select>
+          </div>
+        </div>
+        <div class="hum-style" id="fastStyle"></div>
+        <small id="fastInfo"></small>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="prev-head"><h2>Før og efter</h2><span>Farvet søjle: ny placering · grå streg: original placering · streg forneden: flytningen</span></div>
+    <div class="view-ctl">
+      <label for="viewStart">Fra takt</label>
+      <input type="range" id="viewStart" min="1" max="1" step="1" value="1">
+      <output id="viewStartV" class="num">1</output>
+      <label for="viewBars">Vis</label>
+      <select id="viewBars"><option value="1">1 takt</option><option value="2" selected>2 takter</option><option value="4">4 takter</option><option value="8">8 takter</option><option value="16">16 takter</option></select>
+    </div>
+    <canvas id="humCanvas" aria-label="Velocity før og efter"></canvas>
+  </section>
+
+  <section class="panel">
+    <details class="notes" id="notesBox">
+      <summary><h2>Noder i sporet</h2><span id="notesSummary"></span></summary>
+      <p class="notes-help">Hver node i dit trommespor og hvilken tromme den tæller som. Det bestemmer hvor meget hver node flyttes. Har du ændret kortet i Superior Drummer, retter du gruppen her. Dine rettelser huskes.</p>
+      <div class="note-list" id="noteList"></div>
+      <div class="hum-actions"><button id="mapReset">Nulstil mine rettelser</button></div>
+    </details>
+  </section>
+
+  <footer>
+    <p id="whereNote">Alt foregår på din egen computer. Filen bliver ikke sendt nogen steder hen.</p>
+    <p>Flyt altid ud fra dit originale, kvantiserede spor. En fil, der allerede er flyttet, får ellers flytningen lagt oven i. Du kan sagtens køre den både før og efter DrumHumanize. Samme indstillinger og variationsnummer giver altid præcis samme resultat.</p>
+    <p class="links" id="linksRow" hidden></p>
+    <p class="copy" id="copyRow"></p>
+  </footer>
+</main>
+
+<script>
+/*__LINKS__*/
+</script>
+<script>
+/*__I18N__*/
+</script>
+<script>
+/*__CORE__*/
+</script>
+<script>
+(() => {
+  const DS = window.DrumSplit;
+  const $ = (id) => document.getElementById(id);
+
+  // ---- language -------------------------------------------------------------------------
+  const T = I18N.L, tr = I18N.tr;
+  function setLanguage(l, save) {
+    if (l === I18N.lang && save !== "force") return;
+    I18N.setLang(l); I18N.remember(l);
+    if (typeof window.nativeSetLang === "function") { try { window.nativeSetLang(l); } catch (e) {} }
+    buildHumControls(); if (state.midi) run();
+    if (save) savePrefs();
+  }
+  document.querySelectorAll("[data-lang]").forEach((b) => b.addEventListener("click", () => setLanguage(b.dataset.lang, true)));
+
+  // ---- help, links and a thank-you after saving -------------------------------------------
+  const LINKS = globalThis.DRUMTOOLS_LINKS || {};
+  const escL = (v) => String(v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const TOOL = "drumtime";
+  const isNative = typeof window.nativeOpenHelp === "function";
+  const openHelp = (e, anchor) => {
+    if (isNative) { e.preventDefault(); window.nativeOpenHelp(); return; }
+    e.currentTarget.href = `${TOOL}-help.html#${anchor || I18N.lang}`;
+  };
+  $("helpLink").addEventListener("click", (e) => openHelp(e));
+  document.addEventListener("click", (e) => {
+    const a = e.target.closest && e.target.closest("a[data-ext]");
+    if (a && isNative) { e.preventDefault(); window.nativeOpenURL(a.href); }
+  });
+  function renderLinks() {
+    const ext = (href, text) => `<a data-ext href="${escL(href)}" target="_blank" rel="noopener">${text}</a>`;
+    const items = [];
+    if (LINKS.donate) items.push(ext(LINKS.donate, "Støt projektet"));
+    if (LINKS.buy && !isNative) items.push(ext(LINKS.buy, "Hent Windows-programmet"));
+    if (LINKS.website && isNative) items.push(ext(LINKS.website, "Gratis online-version"));
+    if (LINKS.source) items.push(ext(LINKS.source, "Kildekode"));
+    $("linksRow").innerHTML = items.join(" · ");
+    $("linksRow").hidden = !items.length;
+    $("copyRow").innerHTML = `© ${escL(globalThis.DRUMTOOLS_YEAR || "")} ${escL(globalThis.DRUMTOOLS_AUTHOR || "")} · <a id="licLink" href="${TOOL}-help.html#license" target="_blank" rel="noopener">Licens og tak</a>`;
+    $("licLink").addEventListener("click", (e) => openHelp(e, "license"));
+    if (LINKS.donate) $("thanks").innerHTML = `Sparede det dig tid? ${ext(LINKS.donate, "Giv en kop kaffe")}`;
+  }
+  renderLinks();
+  const watchSaved = (el) => el && new MutationObserver(() => {
+    if (LINKS.donate && /^(Gemt|Hentet|Saved|Downloaded):/.test(el.textContent)) $("thanks").hidden = false;
+  }).observe(el, { childList: true, characterData: true, subtree: true });
+  ["saveNote", "trackNote"].forEach((id) => watchSaved($(id)));
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const mmss = (sec) => { const s = Math.round(sec); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; };
+  const bpmText = (b) => (Math.abs(b - Math.round(b)) < 0.05 ? Math.round(b) : b.toFixed(1));
+  const safe = (s) => s.replace(/[\\/:*?"<>|\u0000-\u001f]/g, "_").replace(/\s+/g, " ").trim() || "trommer";
+
+  const state = { midi: null, buffer: null, fileName: "", baseName: "", example: true, analysis: null, trackIndex: null,
+    hum: JSON.parse(JSON.stringify(DS.TIMING_DEFAULTS)), shiftMap: null, mapSel: "auto", mapOverrides: { gm: {}, sd3: {} },
+    downloads: undefined };
+
+  function notice(text, kind) {
+    const d = document.createElement("div");
+    d.className = "notice" + (kind === "error" ? " error" : "");
+    d.textContent = text;
+    $("notices").appendChild(d);
+  }
+
+  // ---- loading ------------------------------------------------------------------------
+  function load(buffer, name, isExample) {
+    let midi;
+    try { midi = DS.readMidi(buffer); }
+    catch (e) { $("notices").innerHTML = ""; notice(`${name} kunne ikke læses: ${e.message}`, "error"); return; }
+    state.midi = midi; state.buffer = buffer; state.fileName = name; state.example = !!isExample;
+    state.baseName = name.replace(/\.(mid|midi)$/i, "");
+    state.trackIndex = null;
+    $("viewStart").value = 1;
+    run();
+  }
+
+  function run() {
+    $("notices").innerHTML = "";
+    try {
+      state.analysis = DS.analyse(state.midi, { trackIndex: state.trackIndex, mapKind: state.mapSel, mapOverrides: state.mapOverrides });
+    } catch (e) { state.analysis = null; notice(e.message, "error"); return; }
+    state.trackIndex = state.analysis.trackIndex;
+    render();
+  }
+
+  function render() {
+    const a = state.analysis;
+    $("fileName").innerHTML = esc(state.example ? "Eksempelsang" : state.fileName) + (state.example ? '<span class="badge">Eksempel</span>' : "");
+    $("fileInfo").textContent = state.example
+      ? "Et opdigtet trommespor, helt kvantiseret. Træk din egen .mid-fil hertil."
+      : `${a.notes.length} trommeslag · ${a.bars.length} takter · PPQ ${a.ppq}`;
+    if (!a.hasTempo) notice("Filen har intet tempo. Siden regner med 120 BPM, så millisekunderne passer måske ikke helt.");
+
+    $("trackField").hidden = a.tracks.length < 2;
+    $("trackSel").innerHTML = a.tracks.map((t) => `<option value="${t.index}"${t.index === a.trackIndex ? " selected" : ""}>${esc(t.name)} (${t.notes} noder)</option>`).join("");
+
+    const sigs = [...new Set(a.sigList.map((s) => s.sig))];
+    const onGrid = a.notes.filter((n) => n.tick % (a.ppq / 8) === 0 || n.tick % (a.ppq / 6) === 0).length / Math.max(1, a.notes.length);
+    $("readout").innerHTML = [
+      ["Trommeslag", a.notes.length, `${Math.round(onGrid * 100)} % ligger præcis på gitteret`],
+      ["Tempo", a.bpmMin === a.bpmMax ? bpmText(a.bpmMin) : `${bpmText(a.bpmMin)}–${bpmText(a.bpmMax)}`, a.hasTempo ? "BPM" : "ikke i filen"],
+      ["Taktart", sigs.join(" · "), a.sigEstimated ? "gættet" : "fra filen"],
+      ["Længde", mmss(a.lengthSec), `${a.bars.length} takter`],
+    ].map(([k, v, s]) => `<div class="stat"><div class="k">${k}</div><div class="v">${esc(v)}</div><div class="s">${esc(s)}</div></div>`).join("");
+
+    $("viewStart").max = Math.max(1, a.bars.length);
+    renderNotes();
+    updateHumanize();
+  }
+
+  // ---- note map -----------------------------------------------------------------------
+  function renderNotes() {
+    const a = state.analysis, kind = a.mapKind;
+    const counts = new Map();
+    for (const n of a.notes) counts.set(n.note, (counts.get(n.note) || 0) + 1);
+    const own = state.mapOverrides[kind] || {};
+    const label = DS.MAPS[kind].label + (state.mapSel === "auto" ? " (fundet automatisk)" : "");
+    const nChanged = Object.keys(own).filter((k) => counts.has(+k)).length;
+    $("notesSummary").textContent = `${counts.size} forskellige noder · ${label}${nChanged ? ` · ${nChanged} rettet af dig` : ""}`;
+    const opts = DS.GROUPS.map((g, i) => `<option value="${i}">${esc(g.label)}</option>`).join("");
+    $("noteList").innerHTML = [...counts.keys()].sort((x, y) => x - y).map((n) => {
+      const name = DS.noteName(kind, n) || "Ukendt node";
+      return `<div class="note-row${n in own ? " changed" : ""}"><span class="n">${n}</span><span class="nm" title="${esc(name)}">${esc(name)}</span>` +
+        `<span class="cnt">${counts.get(n)}×</span><select data-note="${n}" aria-label="Gruppe for node ${n}">${opts}</select></div>`;
+    }).join("");
+    $("noteList").querySelectorAll("select").forEach((el) => { el.value = String(a.noteMap[+el.dataset.note]); });
+  }
+  $("noteList").addEventListener("change", (e) => {
+    const n = e.target.dataset.note; if (n === undefined) return;
+    const kind = state.analysis.mapKind;
+    if (+e.target.value === DS.makeNoteMap(kind, {})[+n]) delete state.mapOverrides[kind][n];
+    else state.mapOverrides[kind][n] = +e.target.value;
+    savePrefs(); run();
+  });
+  $("mapReset").addEventListener("click", () => { state.mapOverrides[state.analysis.mapKind] = {}; savePrefs(); run(); });
+  $("mapSel").addEventListener("change", (e) => { state.mapSel = e.target.value; savePrefs(); run(); });
+  $("trackSel").addEventListener("change", (e) => { state.trackIndex = +e.target.value; run(); });
+
+  // ---- timing -------------------------------------------------------------------------
+  const GROUP_VARS = ["--g-a", "--g-b", "--g-c", "--g-d", "--g-e", "--g-g"];
+  const T_STYLE = [
+    ["timeAhead", "Foran / bagved takten", -20, 20, "ms", "Flytter hele sporet. Negativ = trommeslageren ligger lidt foran (presser), positiv = bagved (afslappet)."],
+    ["timeDrift", "Vaklen over tid", 0, 15, "ms", "En langsom bølge over et par takter, så tiden ånder i stedet for at stå helt stille."],
+    ["timeMax", "Aldrig mere end", 5, 60, "ms", "Ingen slag flyttes mere end dette, uanset de andre indstillinger."],
+  ];
+  const T_FAST = [
+    ["fastLoose", "Løshed", 0, 25, "ms", "Hvor meget slagene i en hurtig række kan svinge, når de er løsest."],
+    ["fastRamp", "Skifter over", 4, 128, "slag", "Hvor mange slag i rækken der går, før den er helt løs (eller helt stram)."],
+    ["fastWave", "Bølge", 0, 100, "%", "0 % = hvert slag hopper tilfældigt. 100 % = slagene glider blødt frem og tilbage, som når en blast begynder at svinge."],
+    ["fastMs", "Hurtig under", 50, 300, "ms", "Slag med mindre afstand end dette på samme tromme tæller som en hurtig række."],
+  ];
+  const MODE_TEXT = {
+    tightLoose: "Rækken starter præcist og bliver løsere, jo længere den varer, som når armene bliver trætte.",
+    looseTight: "Rækken starter lidt løst og falder på plads efter nogle slag.",
+    random: "Hver række er løs på sin egen tilfældige måde hele vejen.",
+    tight: "Hurtige rækker spilles stramt. Kun en meget lille spredning.",
+  };
+  const fmtVal = (id, v, unit) => id === "ht-timeAhead" ? (v < 0 ? `${-v} ms foran` : v > 0 ? `${v} ms bagved` : "på takten") : `${v}${unit ? " " + unit : ""}`;
+  const rngHtml = (id, label, min, max, val, unit, tip, color, step) =>
+    `<div class="rng"${color ? ` style="--c:${color}"` : ""} title="${esc(tip || "")}"><label for="${id}">${esc(label)}</label>` +
+    `<input type="range" id="${id}" min="${min}" max="${max}" step="${step || 1}" value="${val}" data-unit="${unit}"><output for="${id}" id="${id}-v">${fmtVal(id, val, unit)}</output></div>`;
+
+  function buildHumControls() {
+    const h = state.hum;
+    let g = `<span class="th">Gruppe</span><span class="th">Spredning</span>`;
+    DS.HUM_GROUPS.forEach((name, i) => {
+      const c = `var(${GROUP_VARS[i]})`;
+      g += `<span class="gname" style="--c:${c}"><i></i>${esc(name)}</span>` +
+        rngHtml(`ht-g${i}`, `${name} spredning`, 0, 20, h.timeGroup[i], "ms", "Hvor meget slagene på denne tromme spredes omkring gitteret (typisk afvigelse).", c);
+    });
+    $("timeGroups").innerHTML = g;
+    $("timeStyle").innerHTML = T_STYLE.map(([k, label, min, max, unit, tip]) => rngHtml(`ht-${k}`, label, min, max, h[k], unit, tip)).join("");
+    $("fastStyle").innerHTML = T_FAST.map(([k, label, min, max, unit, tip]) => rngHtml(`ht-${k}`, label, min, max, h[k], unit, tip)).join("");
+    $("ht-fastMode").value = h.fastMode;
+    $("seedText").textContent = `Variation nr. ${h.seed}`;
+  }
+
+  function readHumControls() {
+    const h = state.hum;
+    DS.HUM_GROUPS.forEach((_, i) => { h.timeGroup[i] = +$(`ht-g${i}`).value; });
+    for (const [k] of [...T_STYLE, ...T_FAST]) h[k] = +$(`ht-${k}`).value;
+    h.fastMode = $("ht-fastMode").value;
+  }
+
+  function updateHumanize() {
+    const a = state.analysis; if (!a) return;
+    state.shiftMap = DS.humanizeTiming(a, state.hum);
+    $("humStatus").textContent = `Slagene flyttes i gennemsnit ${state.shiftMap.avgMs.toFixed(1)} ms og højst ${state.shiftMap.maxMs.toFixed(1)} ms.` +
+      (state.hum.timeAhead ? ` Hele sporet ligger ${Math.abs(state.hum.timeAhead)} ms ${state.hum.timeAhead < 0 ? "foran" : "bagved"} takten.` : "");
+    $("fastInfo").textContent = MODE_TEXT[state.hum.fastMode] || "";
+    drawPreview();
+  }
+
+  function drawPreview() {
+    const a = state.analysis, cv = $("humCanvas");
+    if (!a || !cv.clientWidth || !state.shiftMap) return;
+    const nb = +$("viewBars").value;
+    const b0 = Math.min(a.bars.length - 1, Math.max(0, +$("viewStart").value - 1));
+    const b1 = Math.min(a.bars.length, b0 + nb);
+    $("viewStartV").textContent = `${b0 + 1}–${b1}`;
+    const t0 = a.bars[b0].start, t1 = a.bars[b1 - 1].end, span = Math.max(1, t1 - t0);
+    const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    const ctx = cv.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+    const css = getComputedStyle(document.documentElement);
+    const col = (v) => css.getPropertyValue(v).trim();
+    const present = [...new Set(a.notes.map((n) => DS.humGroupOfNote(n.note, a.noteMap)))].sort((x, y) => x - y);
+    if (!present.length) return;
+    const left = 92, lane = H / present.length, xOf = (t) => left + (t - t0) / span * (W - left - 6);
+    ctx.font = `12px ${col("--font-body")}`; ctx.textBaseline = "middle";
+    // 16th grid (when zoomed in enough) and bar lines
+    if (nb <= 4) {
+      ctx.strokeStyle = col("--line"); ctx.globalAlpha = 0.45; ctx.lineWidth = 1;
+      for (let t = t0; t < t1; t += a.ppq / 4) { const x = xOf(t); ctx.beginPath(); ctx.moveTo(x + 0.5, 0); ctx.lineTo(x + 0.5, H); ctx.stroke(); }
+      ctx.globalAlpha = 1;
+    }
+    ctx.strokeStyle = col("--muted"); ctx.lineWidth = 1;
+    for (let b = b0; b <= b1; b++) {
+      const x = xOf(b < a.bars.length ? a.bars[b].start : t1);
+      ctx.beginPath(); ctx.moveTo(x + 0.5, 0); ctx.lineTo(x + 0.5, H); ctx.stroke();
+      if (b < b1) { ctx.fillStyle = col("--muted"); ctx.fillText(String(b + 1), x + 4, 8); }
+    }
+    const notes = a.notes.filter((n) => n.tick >= t0 - a.ppq / 4 && n.tick < t1 + a.ppq / 4);
+    present.forEach((g, li) => {
+      const y0 = li * lane;
+      ctx.fillStyle = col("--muted");
+      ctx.fillText(tr(DS.HUM_GROUPS[g]), 8, y0 + lane / 2);
+      for (const n of notes) {
+        if (DS.humGroupOfNote(n.note, a.noteMap) !== g) continue;
+        const xo = xOf(n.tick), xn = xOf(n.tick + (state.shiftMap.get(n.pos) || 0));
+        if (xn < left - 2 || xn > W) continue;
+        const h = (lane - 12) * n.vel / 127, base = y0 + lane - 4;
+        // original place: thin grey line over the whole lane
+        ctx.fillStyle = col("--muted"); ctx.globalAlpha = 0.55;
+        ctx.fillRect(xo - 0.5, y0 + 4, 1, lane - 8);
+        // the move: a short line from the original to the new place
+        ctx.globalAlpha = 0.9; ctx.fillStyle = col("--ink");
+        ctx.fillRect(Math.min(xo, xn), base, Math.max(1, Math.abs(xn - xo)), 2);
+        // the hit at its new place
+        ctx.fillStyle = col(GROUP_VARS[g]); ctx.globalAlpha = 0.95;
+        ctx.fillRect(xn - 1.5, base - h, 3, h);
+        ctx.globalAlpha = 1;
+      }
+    });
+  }
+  window.addEventListener("resize", () => drawPreview());
+  $("viewStart").addEventListener("input", () => drawPreview());
+  $("viewBars").addEventListener("change", () => drawPreview());
+
+  const onSettings = (e) => {
+    if (!e.target.matches("input, select")) return;
+    readHumControls();
+    document.querySelectorAll("#timePanel .rng input").forEach((el) => { $(el.id + "-v").textContent = fmtVal(el.id, +el.value, el.dataset.unit); });
+    updateHumanize(); savePrefs();
+  };
+  $("timePanel").addEventListener("input", onSettings);
+  $("timePanel").addEventListener("change", onSettings);
+  $("seedBtn").addEventListener("click", () => {
+    state.hum.seed = state.hum.seed % 999 + 1;
+    $("seedText").textContent = `Variation nr. ${state.hum.seed}`;
+    updateHumanize(); savePrefs();
+  });
+
+  // ---- settings, remembered between sessions -------------------------------------------
+  function savePrefs() {
+    const json = JSON.stringify({ hum: state.hum, mapSel: state.mapSel, mapOverrides: state.mapOverrides, lang: I18N.lang });
+    if (typeof window.nativeSavePrefs === "function") { try { window.nativeSavePrefs(json); } catch (e) {} return; }
+    try { localStorage.setItem("drumtime.prefs", json); } catch (e) {}
+  }
+  function applyPrefs(json) {
+    try {
+      const p = JSON.parse(json);
+      if (!p) return;
+      if (p.lang) { I18N.setLang(p.lang); I18N.remember(p.lang); }
+      if (p.hum) state.hum = Object.assign(JSON.parse(JSON.stringify(DS.TIMING_DEFAULTS)), p.hum);
+      if (p.mapSel) { state.mapSel = p.mapSel; $("mapSel").value = p.mapSel; }
+      if (p.mapOverrides) state.mapOverrides = Object.assign({ gm: {}, sd3: {} }, p.mapOverrides);
+      buildHumControls(); run();
+    } catch (e) {}
+  }
+
+  // ---- files in -------------------------------------------------------------------------
+  $("fileInput").addEventListener("change", (e) => { const f = e.target.files[0]; if (f) readFile(f); e.target.value = ""; });
+  function readFile(f) { f.arrayBuffer().then((buf) => load(buf, f.name, false), () => notice(`${f.name} kunne ikke åbnes.`, "error")); }
+  const drop = $("drop");
+  let depth = 0;
+  window.addEventListener("dragenter", (e) => { e.preventDefault(); depth++; drop.classList.add("over"); });
+  window.addEventListener("dragleave", () => { if (--depth <= 0) { depth = 0; drop.classList.remove("over"); } });
+  window.addEventListener("dragover", (e) => e.preventDefault());
+  window.addEventListener("drop", (e) => {
+    e.preventDefault(); depth = 0; drop.classList.remove("over");
+    const f = e.dataTransfer && e.dataTransfer.files[0];
+    if (f) readFile(f);
+  });
+
+  // ---- file out -------------------------------------------------------------------------
+  const insideClaude = !!(window.claude && typeof window.claude.use === "function");
+  const nativeFile = typeof window.nativeSaveFile === "function";
+  if (nativeFile) $("whereNote").textContent = "Du vælger selv hvor filen gemmes, og programmet husker mappen og dine indstillinger til næste gang.";
+  if (insideClaude) $("saveBtn").textContent = "Gem MIDI-fil med ny timing (.zip)";
+  const toBase64 = (bytes) => {
+    let bin = "";
+    for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    return btoa(bin);
+  };
+  const nativeCall = (fn, ...args) => new Promise((resolve) => { window.__nativeResult = resolve; window[fn](...args); });
+
+  $("saveBtn").addEventListener("click", async () => {
+    const a = state.analysis; if (!a || !state.buffer) return;
+    const bytes = DS.writeHumanized(state.buffer, a, null, state.shiftMap);
+    const name = `${safe(state.example ? T("Eksempelsang", "Example song") : state.baseName)} (${T("timing", "timing")}).mid`;
+    const note = $("saveNote");
+    if (nativeFile) {
+      const r = await nativeCall("nativeSaveFile", name, toBase64(bytes));
+      if (r && !r.cancelled) note.textContent = r.error ? `Filen kunne ikke gemmes: ${r.error}` : `Gemt: ${r.path}`;
+      return;
+    }
+    if (!insideClaude) {
+      const url = URL.createObjectURL(new Blob([bytes], { type: "audio/midi" }));
+      const link = document.createElement("a");
+      link.href = url; link.download = name; document.body.appendChild(link); link.click(); link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      note.textContent = `Hentet: ${name}`;
+      return;
+    }
+    if (!state.downloads) { note.textContent = "Download virker kun når siden er åbnet i Claude."; return; }
+    const zipName = name.replace(/\.mid$/, ".zip");
+    try {
+      await state.downloads.save({ filename: zipName, data: DS.makeZip([{ name, data: bytes }]) });
+      note.textContent = `Gemt: ${name} i ${zipName}`;
+    } catch (err) {
+      note.textContent = err && err.code === "declined" ? "Download annulleret." : "Download virker ikke her.";
+    }
+  });
+  if (insideClaude) {
+    window.claude.use("downloads").then((d) => {
+      state.downloads = d;
+      if (!d) { $("saveBtn").disabled = true; $("saveNote").textContent = "Download virker kun når siden er åbnet i Claude."; }
+    }, () => { state.downloads = null; $("saveBtn").disabled = true; });
+  }
+
+  // ---- start with a fully quantized example --------------------------------------------
+  I18N.setLang(I18N.initialLang());
+  I18N.start();
+  buildHumControls();
+  load(DS.writeExampleMidi(7, true), "Eksempelsang.mid", true);
+  if (typeof window.nativeLoadPrefs === "function") window.nativeLoadPrefs().then((j) => j && applyPrefs(j), () => {});
+  else { try { const j = localStorage.getItem("drumtime.prefs"); if (j) applyPrefs(j); } catch (e) {} }
+})();
+</script>

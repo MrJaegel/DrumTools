@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en" data-show="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Drum Tools</title>
+<link rel="icon" type="image/png" href="{{FAVICON}}">
+<meta name="description" content="Free tools for MIDI drums: split a drum track into sections, humanize velocity and humanize timing. Everything runs in your browser.">
+<style>
+/* Layout: short intro, three tool cards, then the Windows programs and support */
+:root {
+  --bg: #eef0f3; --panel: #fbfbfc; --ink: #15181d; --muted: #5d6573; --line: #d5d9e0;
+  --g-a: #2f68c9; --g-b: #d07a1f; --g-c: #23895c;
+  --font-display: "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #111317; --panel: #1a1d23; --ink: #e8eaee; --muted: #9aa2b0; --line: #2d323b; --g-a: #6f9cf0; --g-b: #f0a050; --g-c: #4fc08b; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --bg: #111317; --panel: #1a1d23; --ink: #e8eaee; --muted: #9aa2b0; --line: #2d323b; --g-a: #6f9cf0; --g-b: #f0a050; --g-c: #4fc08b; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 var(--font-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 32px 64px; }
+html[data-show="en"] [lang="da"], html[data-show="da"] [lang="en"] { display: none !important; }
+main { max-width: 1040px; margin: 0 auto; display: grid; gap: 26px; }
+header.top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 12px 24px; }
+h1 { font: 700 clamp(34px, 6vw, 52px)/1.05 var(--font-display); margin: 0; letter-spacing: -0.02em; }
+.lead { margin: 10px 0 0; max-width: 62ch; color: var(--muted); font-size: 17px; }
+.lang { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--panel); flex: none; }
+.lang button { border: 0; padding: 7px 12px; font: 600 13px var(--font-body); background: transparent; color: var(--muted); cursor: pointer; }
+.lang button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.brand { display: flex; flex-wrap: wrap; align-items: center; gap: 18px 28px; min-width: 0; flex: 1 1 520px; }
+.brand img { width: min(210px, 46vw); height: auto; border-radius: 18px; display: block; }
+.brand > div { min-width: 0; flex: 1 1 280px; }
+.tools { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 820px) { .tools { grid-template-columns: minmax(0, 1fr); } }
+.tool { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 20px; display: grid; gap: 10px; align-content: start; border-top: 4px solid var(--c); }
+.tool h2 { margin: 0; font: 650 22px/1.2 var(--font-display); }
+.tool p { margin: 0; color: var(--muted); }
+.tool .act { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin-top: 4px; }
+.btn { display: inline-block; padding: 9px 16px; border-radius: 7px; background: var(--ink); color: var(--bg); font-weight: 600; text-decoration: none; }
+.tool a.help { color: var(--ink); }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 20px 24px; }
+.panel h2 { margin: 0 0 8px; font: 650 20px/1.25 var(--font-display); }
+.panel p { margin: 6px 0; max-width: 72ch; }
+.panel a { color: var(--ink); }
+footer { color: var(--muted); font-size: 13.5px; }
+footer a { color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <header class="top">
+    <div class="brand">
+      <img src="assets/logo-badge-560.jpg" alt="Drum Tools by MrJaegel" width="560" height="560">
+      <div>
+      <h1>Drum Tools</h1>
+      <p class="lead" lang="en">Three free tools for MIDI drums, made by a musician for musicians. Everything runs in your browser; your files never leave your computer.</p>
+      <p class="lead" lang="da">Tre gratis værktøjer til MIDI-trommer, lavet af en musiker til musikere. Alt kører i din browser; dine filer forlader aldrig din computer.</p>
+      </div>
+    </div>
+    <div class="lang" role="group" aria-label="Language / Sprog"><button data-lang="en" aria-pressed="true">English</button><button data-lang="da" aria-pressed="false">Dansk</button></div>
+  </header>
+
+  <section class="tools">
+    <article class="tool" style="--c: var(--g-a)">
+      <h2>DrumSplit</h2>
+      <p lang="en">Finds the tempo, time signature and sections (verse, chorus, fills) in a MIDI drum track and saves each section as its own MIDI file.</p>
+      <p lang="da">Finder tempo, taktart og sektioner (vers, omkvæd, fills) i et MIDI-trommespor og gemmer hver sektion som sin egen MIDI-fil.</p>
+      <div class="act"><a class="btn" href="drumsplit.html"><span lang="en">Open</span><span lang="da">Åbn</span></a><a class="help" href="drumsplit-help.html" data-help><span lang="en">Help</span><span lang="da">Hjælp</span></a></div>
+    </article>
+    <article class="tool" style="--c: var(--g-b)">
+      <h2>DrumHumanize</h2>
+      <p lang="en">Gives MIDI drums living velocity: softer fast hits, beat accents, a little variation and the odd mishit. Programmed ghost notes are left alone.</p>
+      <p lang="da">Giver MIDI-trommer levende velocity: svagere hurtige slag, takt-accenter, lidt variation og et sjældent fejlslag. Programmerede ghost notes røres ikke.</p>
+      <div class="act"><a class="btn" href="drumhumanize.html"><span lang="en">Open</span><span lang="da">Åbn</span></a><a class="help" href="drumhumanize-help.html" data-help><span lang="en">Help</span><span lang="da">Hjælp</span></a></div>
+    </article>
+    <article class="tool" style="--c: var(--g-c)">
+      <h2>DrumTime</h2>
+      <p lang="en">Moves the hits slightly off the grid: a spread per drum, time that breathes, and fast runs like blasts that tighten or loosen as they go.</p>
+      <p lang="da">Flytter slagene en smule væk fra gitteret: spredning pr. tromme, en tid der ånder, og hurtige rækker som blasts, der strammes eller løsnes undervejs.</p>
+      <div class="act"><a class="btn" href="drumtime.html"><span lang="en">Open</span><span lang="da">Åbn</span></a><a class="help" href="drumtime-help.html" data-help><span lang="en">Help</span><span lang="da">Hjælp</span></a></div>
+    </article>
+  </section>
+
+  <section class="panel">
+    <h2 lang="en">Works with your DAW and drum software</h2>
+    <h2 lang="da">Virker med dit DAW og trommeprogram</h2>
+    <p lang="en">Export the drum track from Cubase or any other DAW as a MIDI file, drop it on a tool, and drag the result back into your project. General MIDI and the Superior Drummer 3 note map are recognised automatically, and you can fix single notes yourself.</p>
+    <p lang="da">Eksportér trommesporet fra Cubase eller et andet DAW som MIDI-fil, træk den ind i et værktøj, og træk resultatet tilbage i dit projekt. General MIDI og nodekortet i Superior Drummer 3 genkendes automatisk, og du kan selv rette enkelte noder.</p>
+  </section>
+
+  <section class="panel" id="windowsPanel" hidden>
+    <h2 lang="en">Windows programs</h2>
+    <h2 lang="da">Windows-programmer</h2>
+    <p lang="en">Prefer a program of your own? The same tools are available as small Windows programs that work offline, remember your settings and save with the normal Windows dialogs. No installation and no licence key.</p>
+    <p lang="da">Vil du hellere have et program på din egen computer? De samme værktøjer findes som små Windows-programmer, der virker uden internet, husker dine indstillinger og gemmer med Windows' almindelige dialoger. Ingen installation og ingen licensnøgle.</p>
+    <p id="buyLink"></p>
+  </section>
+
+  <section class="panel" id="supportPanel" hidden>
+    <h2 lang="en">Support the project</h2>
+    <h2 lang="da">Støt projektet</h2>
+    <p lang="en">The online tools are free. If they save you time, a small donation is a great thank-you.</p>
+    <p lang="da">Online-værktøjerne er gratis. Sparer de dig tid, er en lille donation en dejlig tak.</p>
+    <p id="supportLinks"></p>
+  </section>
+
+  <footer>
+    <p>© 2026 MrJaegel · <a href="LICENSE.txt">PolyForm Shield 1.0.0</a> · <a href="drumsplit-help.html#privacy"><span lang="en">Privacy: nothing is uploaded, no tracking</span><span lang="da">Privatliv: intet sendes, ingen sporing</span></a><span id="srcLink"></span></p>
+    <p lang="en">Superior Drummer is a trademark of Toontrack. These tools are not made or endorsed by Toontrack.</p>
+    <p lang="da">Superior Drummer er et varemærke tilhørende Toontrack. Værktøjerne er ikke lavet eller godkendt af Toontrack.</p>
+  </footer>
+</main>
+<script>
+/*__LINKS__*/
+</script>
+<script>
+(function () {
+  "use strict";
+  var root = document.documentElement;
+  function setLang(l, save) {
+    l = l === "da" ? "da" : "en";
+    root.setAttribute("data-show", l); root.lang = l;
+    document.querySelectorAll(".lang button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.lang === l)); });
+    document.querySelectorAll("a[data-help]").forEach(function (a) { a.href = a.getAttribute("href").split("#")[0] + "#" + l; });
+    if (save) { try { localStorage.setItem("drumtools.lang", l); } catch (e) {} }
+  }
+  var start = "en";
+  try { var s = localStorage.getItem("drumtools.lang"); if (s === "da" || s === "en") start = s; } catch (e) {}
+  if (location.hash === "#da" || location.hash === "#en") start = location.hash.slice(1);
+  setLang(start, false);
+  document.querySelectorAll(".lang button").forEach(function (b) { b.addEventListener("click", function () { setLang(b.dataset.lang, true); }); });
+
+  var L = window.DRUMTOOLS_LINKS || {};
+  function a(href, en, da) { return '<a href="' + href.replace(/"/g, "&quot;") + '" target="_blank" rel="noopener"><span lang="en">' + en + '</span><span lang="da">' + da + "</span></a>"; }
+  if (L.buy) { document.getElementById("buyLink").innerHTML = a(L.buy, "Get the Windows programs", "Hent Windows-programmerne"); document.getElementById("windowsPanel").hidden = false; }
+  if (L.donate) { document.getElementById("supportLinks").innerHTML = a(L.donate, "Buy me a coffee", "Giv en kop kaffe"); document.getElementById("supportPanel").hidden = false; }
+  if (L.source) document.getElementById("srcLink").innerHTML = " · " + a(L.source, "Source code", "Kildekode");
+})();
+</script>
+</body>
+</html>
