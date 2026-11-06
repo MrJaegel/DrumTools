@@ -144,6 +144,9 @@
     "Slag med mindre afstand end dette på samme tromme tæller som en hurtig række.": "Hits on the same drum closer together than this count as a fast run.",
     "Hvor meget slagene på denne tromme spredes omkring gitteret (typisk afvigelse).": "How much the hits on this drum spread around the grid (typical deviation).",
     "Et nyt sæt tilfældige flytninger. Samme nummer giver altid samme resultat.": "A new set of random moves. The same number always gives the same result.",
+    "Lås": "Lock", "På gitteret": "On the grid",
+    "Hold denne tromme præcis på gitteret. Den flyttes slet ikke, heller ikke af foran/bagved, vaklen eller hurtige rækker.":
+      "Keep this drum exactly on the grid. It is not moved at all, not even by ahead/behind, drift or fast runs.",
   };
 
   const G = Object.keys(GROUP_EN).map((k) => k.replace(/[-]/g, "\\-")).join("|");
@@ -172,8 +175,10 @@
       (m) => `${m[1]} ${plural(m[1], "mishit", "mishits")} in the whole track, out of ${m[2]} stick hits. Only snare, hi-hat, toms and cymbals, mostly in fast runs and on the weak hand. Never kick, hi-hat pedal or quiet ghost notes.${m[3] ? ` Nor hits below velocity ${m[4]}.` : ""}`],
     [/^(\d+) slag under velocity (\d+) bliver præcis som du har programmeret dem\.$/, (m) => `${m[1]} hits below velocity ${m[2]} stay exactly as you programmed them.`],
     [/^Ingen slag under velocity (\d+) i sporet, så alle humaniseres\.$/, (m) => `No hits below velocity ${m[1]} in the track, so all are humanized.`],
-    [/^Slagene flyttes i gennemsnit ([\d.]+) ms og højst ([\d.]+) ms\.( Hele sporet ligger (\d+) ms (foran|bagved) takten\.)?$/,
-      (m) => `Hits move ${m[1]} ms on average and ${m[2]} ms at most.${m[3] ? ` The whole track sits ${m[4]} ms ${m[5] === "foran" ? "ahead of" : "behind"} the beat.` : ""}`],
+    [/^Slagene flyttes i gennemsnit ([\d.]+) ms og højst ([\d.]+) ms\.( Hele sporet ligger (\d+) ms (foran|bagved) takten\.)?( På gitteret: (.+)\.)?$/,
+      (m) => `Hits move ${m[1]} ms on average and ${m[2]} ms at most.${m[3] ? ` The whole track sits ${m[4]} ms ${m[5] === "foran" ? "ahead of" : "behind"} the beat.` : ""}` +
+        `${m[6] ? ` On the grid: ${m[7].split(", ").map(groupEn).join(", ")}.` : ""}`],
+    [/^Lås (.+) til gitteret$/, (m) => `Keep ${groupEn(m[1])} on the grid`],
     [/^Variation nr\. (\d+)$/, (m) => `Variation no. ${m[1]}`],
     [/^(\d+) sektion(?:er)?( \+ (\d+) fills?)? som MIDI-filer(?:, (\d+) gentagelser? springes over)?$/,
       (m) => `${m[1]} ${plural(m[1], "section", "sections")}${m[2] ? ` + ${m[3]} ${plural(m[3], "fill", "fills")}` : ""} as MIDI files${m[4] ? `, ${m[4]} ${plural(m[4], "repeat", "repeats")} skipped` : ""}`],

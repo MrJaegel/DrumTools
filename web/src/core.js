@@ -740,6 +740,7 @@
     timing: true, timeGroup: [3, 4, 6, 6, 5, 6], timeAhead: 0, timeDrift: 3,
     fastMode: "tightLoose", fastLoose: 6, fastRamp: 16, fastWave: 50, timeMax: 40,
     fastMs: 160, seed: 1,
+    timeLock: [false, false, false, false, false, false],   // locked drums stay exactly on the grid
   };
 
   /** Returns a Map from note position to a shift in ticks (+ = later). */
@@ -786,6 +787,8 @@
         const jump = gaussHash(s.seed + 101, runStart[g] + g, k);
         ms += s.fastLoose * runLoose * (wave * sway * 1.4 + (1 - wave) * jump);
       }
+      // a locked drum is not moved at all: no spread, no ahead/behind, no drift, no fast-run looseness
+      if (s.timeLock && s.timeLock[g]) ms = 0;
       ms = Math.max(-s.timeMax, Math.min(s.timeMax, ms));
 
       // milliseconds -> ticks at the local tempo

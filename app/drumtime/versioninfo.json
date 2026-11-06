@@ -1,9 +1,9 @@
 {
-  "FixedFileInfo": { "FileVersion": {"Major":1,"Minor":0,"Patch":0,"Build":0}, "ProductVersion": {"Major":1,"Minor":0,"Patch":0,"Build":0},
+  "FixedFileInfo": { "FileVersion": {"Major":1,"Minor":1,"Patch":0,"Build":0}, "ProductVersion": {"Major":1,"Minor":1,"Patch":0,"Build":0},
     "FileFlagsMask": "3f", "FileFlags ": "00", "FileOS": "040004", "FileType": "01", "FileSubType": "00" },
   "StringFileInfo": { "Comments": "Everything happens on your own computer. Nothing is sent anywhere.", "CompanyName": "MrJaegel",
-    "FileDescription": "DrumTime - Moves MIDI drum hits slightly off the grid", "FileVersion": "1.0.0.0", "InternalName": "DrumTime", "LegalCopyright": "Copyright 2026 Michael Zacho Kristensen (MrJaegel). PolyForm Shield 1.0.0",
-    "OriginalFilename": "DrumTime.exe", "ProductName": "DrumTime", "ProductVersion": "1.0.0.0" },
+    "FileDescription": "DrumTime - Moves MIDI drum hits slightly off the grid", "FileVersion": "1.1.0.0", "InternalName": "DrumTime", "LegalCopyright": "Copyright 2026 Michael Zacho Kristensen (MrJaegel). PolyForm Shield 1.0.0",
+    "OriginalFilename": "DrumTime.exe", "ProductName": "DrumTime", "ProductVersion": "1.1.0.0" },
   "VarFileInfo": { "Translation": { "LangID": "0409", "CharsetID": "04B0" } },
   "IconPath": "icon.ico", "ManifestPath": "app.manifest"
 }

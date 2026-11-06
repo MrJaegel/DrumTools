@@ -203,7 +203,10 @@ footer p { margin: 0 0 6px; }
 .prev-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 16px; }
 .prev-head h2 { margin: 0; }
 .prev-head span { font-size: 13px; color: var(--muted); }
-.hum-table.t2 { grid-template-columns: minmax(96px, auto) minmax(0, 1fr); }
+.hum-table.t2 { grid-template-columns: minmax(96px, auto) minmax(0, 1fr) auto; }
+.hum-table .lock { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; color: var(--muted); cursor: pointer; white-space: nowrap; }
+.hum-table .lock input { accent-color: var(--c, var(--ink)); width: 16px; height: 16px; margin: 0; }
+.hum-table .rng.locked { opacity: .35; }
 .fastbox { grid-column: 1 / -1; display: grid; gap: 12px; padding-top: 14px; border-top: 1px solid var(--line); }
 .fastbox h3 { margin: 0; font: 600 14.5px var(--font-body); }
 .fastbox h3 span { font-weight: 400; color: var(--muted); font-size: 13px; margin-left: 8px; }
@@ -495,13 +498,16 @@ footer .links a, footer .copy a, .thanks a { color: var(--ink); }
 
   function buildHumControls() {
     const h = state.hum;
-    let g = `<span class="th">Gruppe</span><span class="th">Spredning</span>`;
+    let g = `<span class="th">Gruppe</span><span class="th">Spredning</span><span class="th">På gitteret</span>`;
     DS.HUM_GROUPS.forEach((name, i) => {
       const c = `var(${GROUP_VARS[i]})`;
+      const locked = !!(h.timeLock && h.timeLock[i]);
       g += `<span class="gname" style="--c:${c}"><i></i>${esc(name)}</span>` +
-        rngHtml(`ht-g${i}`, `${name} spredning`, 0, 20, h.timeGroup[i], "ms", "Hvor meget slagene på denne tromme spredes omkring gitteret (typisk afvigelse).", c);
+        rngHtml(`ht-g${i}`, `${name} spredning`, 0, 20, h.timeGroup[i], "ms", "Hvor meget slagene på denne tromme spredes omkring gitteret (typisk afvigelse).", c) +
+        `<label class="lock" style="--c:${c}" title="Hold denne tromme præcis på gitteret. Den flyttes slet ikke, heller ikke af foran/bagved, vaklen eller hurtige rækker."><input type="checkbox" id="ht-lock${i}"${locked ? " checked" : ""} aria-label="Lås ${esc(name)} til gitteret"></label>`;
     });
     $("timeGroups").innerHTML = g;
+    markLocks();
     $("timeStyle").innerHTML = T_STYLE.map(([k, label, min, max, unit, tip]) => rngHtml(`ht-${k}`, label, min, max, h[k], unit, tip)).join("");
     $("fastStyle").innerHTML = T_FAST.map(([k, label, min, max, unit, tip]) => rngHtml(`ht-${k}`, label, min, max, h[k], unit, tip)).join("");
     $("ht-fastMode").value = h.fastMode;
@@ -510,16 +516,27 @@ footer .links a, footer .copy a, .thanks a { color: var(--ink); }
 
   function readHumControls() {
     const h = state.hum;
-    DS.HUM_GROUPS.forEach((_, i) => { h.timeGroup[i] = +$(`ht-g${i}`).value; });
+    h.timeLock = (h.timeLock || []).slice();
+    DS.HUM_GROUPS.forEach((_, i) => { h.timeGroup[i] = +$(`ht-g${i}`).value; h.timeLock[i] = $(`ht-lock${i}`).checked; });
     for (const [k] of [...T_STYLE, ...T_FAST]) h[k] = +$(`ht-${k}`).value;
     h.fastMode = $("ht-fastMode").value;
+    markLocks();
+  }
+
+  // a locked drum's spread slider is greyed out, since it does nothing then
+  function markLocks() {
+    DS.HUM_GROUPS.forEach((_, i) => {
+      const box = $(`ht-lock${i}`), r = $(`ht-g${i}`);
+      if (box && r) { r.disabled = box.checked; r.closest(".rng").classList.toggle("locked", box.checked); }
+    });
   }
 
   function updateHumanize() {
     const a = state.analysis; if (!a) return;
     state.shiftMap = DS.humanizeTiming(a, state.hum);
     $("humStatus").textContent = `Slagene flyttes i gennemsnit ${state.shiftMap.avgMs.toFixed(1)} ms og højst ${state.shiftMap.maxMs.toFixed(1)} ms.` +
-      (state.hum.timeAhead ? ` Hele sporet ligger ${Math.abs(state.hum.timeAhead)} ms ${state.hum.timeAhead < 0 ? "foran" : "bagved"} takten.` : "");
+      (state.hum.timeAhead ? ` Hele sporet ligger ${Math.abs(state.hum.timeAhead)} ms ${state.hum.timeAhead < 0 ? "foran" : "bagved"} takten.` : "") +
+      (() => { const l = DS.HUM_GROUPS.filter((_, i) => state.hum.timeLock && state.hum.timeLock[i]); return l.length ? ` På gitteret: ${l.join(", ")}.` : ""; })();
     $("fastInfo").textContent = MODE_TEXT[state.hum.fastMode] || "";
     drawPreview();
   }
